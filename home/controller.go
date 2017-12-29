@@ -1,22 +1,23 @@
 package home
 
 import (
-	"html/template"
 	"net/http"
+	a "github.com/waqqas-abdulkareem/short-url/app"
 )
 
 type Controller struct {
-	tpl *template.Template
+	app *a.App
 }
 
-func NewController(tpl *template.Template) *Controller {
+func NewController(app *a.App) *Controller {
 	return &Controller{
-		tpl,
+		app,
 	}
 }
 
 func (c *Controller) Index(w http.ResponseWriter, req *http.Request) {
-	err := c.tpl.ExecuteTemplate(w, "home.gohtml", nil)
+
+	err := c.app.Templates.ExecuteTemplate(w, "home.gohtml", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

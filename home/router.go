@@ -2,17 +2,13 @@ package home
 
 import (
 	"github.com/gorilla/mux"
-	"html/template"
+	a "github.com/waqqas-abdulkareem/short-url/app"
 )
 
-var c *Controller
+func Configure(app *a.App, r *mux.Router) {
+	
+	c := NewController(app)
 
-func init() {
-	tpl := template.Must(template.ParseGlob("./templates/*"))
-	c = NewController(tpl)
-}
-
-func ConfigureRoutes(r *mux.Router) {
 	r.HandleFunc("/", c.Index).
 		Methods("GET")
 }
