@@ -1,8 +1,8 @@
 package home
 
 import (
+	a "github.com/w-k-s/short-url/app"
 	"net/http"
-	a "github.com/waqqas-abdulkareem/short-url/app"
 )
 
 type Controller struct {

@@ -1,96 +1,98 @@
 package urlshortener
 
-import(
-	"gopkg.in/mgo.v2"
-	"net/url"
-	"gopkg.in/mgo.v2/bson"
-	a "github.com/waqqas-abdulkareem/short-url/app"
-	"github.com/waqqas-abdulkareem/short-url/db"
+import (
 	"errors"
+	a "github.com/w-k-s/short-url/app"
+	"github.com/w-k-s/short-url/db"
+	"github.com/w-k-s/basenconv"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"math/rand"
+	"net/url"
 	"time"
-	"strconv"
 )
 
-type urlRecord struct{
+type urlRecord struct {
 	LongUrl string `json:"longUrl" bson:"longUrl"`
-
-	//should be uint64 but bson does not support such large numbers, so use string instead
 	ShortId string `json:"-" bson:"shortId"`
+	CreateTime time.Time `json:"-" bson:"createTime"`
 }
 
-type Service struct{
+type Service struct {
 	app *a.App
 }
 
-func NewService(app *a.App) *Service{
+func NewService(app *a.App) *Service {
 	return &Service{
 		app,
 	}
 }
 
-func (s *Service) urlsColl() *mgo.Collection{
+func (s *Service) urlsColl() *mgo.Collection {
 	return s.app.UrlsColl()
 }
 
-func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL,error){
+func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL, error) {
 
 	var urlRecords []urlRecord
-	err := s.urlsColl().Find(bson.M{db.DocNameLongUrl: longUrl.String()}).All(&urlRecords)
-	
-	if err != nil{
-		return nil,err
+	err := s.urlsColl().Find(bson.M{db.UrlsFieldLongUrl: longUrl.String()}).All(&urlRecords)
+
+	if err != nil {
+		return nil, err
 	}
 
 	if len(urlRecords) == 1 {
 		s.app.Logger.Println("Record found")
 		record := urlRecords[0]
-		return s.buildShortenedUrl(longUrl,host,record.ShortId),nil
+		return s.buildShortenedUrl(longUrl, host, record), nil
 	}
 
 	maxTries := 3
 	inserted := false
-	src := rand.NewSource(time.Now().UnixNano())
-	random := rand.New(src)
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	urlRec := urlRecord{
 		LongUrl: longUrl.String(),
-		ShortId: strconv.FormatUint(random.Uint64(),10),
+		CreateTime: time.Now(),
 	}
 
-	for try := 0; try < maxTries; try++{
-		
+	for try := 0; try < maxTries; try++ {
+
+		shortIdNum := s.generateShortIdNumber(try,random)
+		urlRec.ShortId = basenconv.FormatBase62(shortIdNum)
+
 		err = s.urlsColl().Insert(urlRec)
-		if err == nil{
+		if err == nil {
 			inserted = true
 			break
 		}
-		if mgo.IsDup(err){
+		if mgo.IsDup(err) {
 			s.app.Logger.Println("Duplication Error")
-			urlRec.ShortId = strconv.FormatUint(random.Uint64(),10)
 			continue
-		}else{
-			s.app.Logger.Println("Insert error",err.Error())
-			return nil,err
+		} else {
+			s.app.Logger.Println("Insert error", err.Error())
+			return nil, err
 		}
 	}
 
-	if !inserted{
-		return nil,errors.New("Could not save url after several attempts")
+	if !inserted {
+		return nil, errors.New("Could not save url after several attempts")
 	}
 
-	return s.buildShortenedUrl(longUrl,host,urlRec.ShortId),nil
+	return s.buildShortenedUrl(longUrl, host, urlRec), nil
 }
 
-func (s *Service) buildShortenedUrl(original *url.URL, host string, shortId string) *url.URL{
-	
-	s.app.Logger.Printf("Short Id: %v\n",shortId)
+func (s *Service) generateShortIdNumber(try int,random *rand.Rand) uint64{
+	//31 should be extracted as a configuration, probably
+	//still, not the best solution, sometimes the shortId will be short, othertimes long
+	return uint64(random.Intn(1<<31 - 1))
+}
 
-	shortUrl,_ := url.Parse(original.String())
+func (s *Service) buildShortenedUrl(original *url.URL, host string, urlRecord urlRecord) *url.URL {
+
+	shortUrl, _ := url.Parse(original.String())
 	shortUrl.Host = host
-	shortUrlVals := shortUrl.Query()
-	shortUrlVals.Add("id",shortId)
-	shortUrl.RawQuery = shortUrlVals.Encode()
+	shortUrl.Path = urlRecord.ShortId
 
 	return shortUrl
 }

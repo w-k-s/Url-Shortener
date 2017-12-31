@@ -3,13 +3,13 @@ package urlshortener
 import (
 	"encoding/json"
 	"fmt"
-	a "github.com/waqqas-abdulkareem/short-url/app"
+	a "github.com/w-k-s/short-url/app"
 	"io"
 	"net/http"
 )
 
 type Controller struct {
-	service * Service
+	service *Service
 }
 
 func NewController(app *a.App) *Controller {
@@ -34,8 +34,8 @@ func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	url, err = c.service.ShortenUrl(req.Host,url)
-	if err != nil{
+	url, err = c.service.ShortenUrl(req.Host, url)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

@@ -1,29 +1,28 @@
 package app
 
-import(
-	"html/template"
+import (
+	"github.com/w-k-s/short-url/db"
 	"gopkg.in/mgo.v2"
+	"html/template"
 	"log"
 	"os"
-	"github.com/waqqas-abdulkareem/short-url/db"
 )
 
-type App struct{
+type App struct {
 	Templates *template.Template
-	Session *mgo.Session
-	Logger *log.Logger
+	Session   *mgo.Session
+	Logger    *log.Logger
 }
 
-
-func Init() *App{
+func Init() *App {
 	tpl := template.Must(template.ParseGlob("./templates/*"))
 
 	session, err := mgo.Dial(db.ConnectionString)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 
-	logger := log.New(os.Stdout,"short-url: ",log.Ldate|log.Ltime)
+	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 
 	app := &App{
 		tpl,

@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/waqqas-abdulkareem/short-url/home"
-	"github.com/waqqas-abdulkareem/short-url/urlshortener"
-	"github.com/waqqas-abdulkareem/short-url/app"
+	"github.com/w-k-s/short-url/home"
+	"github.com/w-k-s/short-url/urlshortener"
+	"github.com/w-k-s/short-url/app"
 	"net/http"
 )
 
