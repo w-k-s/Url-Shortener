@@ -9,8 +9,12 @@ func Configure(app *a.App, r *mux.Router) {
 
 	c := NewController(app)
 
-	s := r.PathPrefix("/urlshortener/v1").Subrouter()
+	s := r.PathPrefix("/urlshortener/v1").
+		Subrouter()
 
 	s.HandleFunc("/url", c.ShortenUrl).
 		Methods("POST")
+
+	s.HandleFunc("/url", c.GetLongUrl).
+		Methods("GET")
 }

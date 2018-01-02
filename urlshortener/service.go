@@ -2,9 +2,9 @@ package urlshortener
 
 import (
 	"errors"
+	"github.com/w-k-s/basenconv"
 	a "github.com/w-k-s/short-url/app"
 	"github.com/w-k-s/short-url/db"
-	"github.com/w-k-s/basenconv"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"math/rand"
@@ -13,8 +13,8 @@ import (
 )
 
 type urlRecord struct {
-	LongUrl string `json:"longUrl" bson:"longUrl"`
-	ShortId string `json:"-" bson:"shortId"`
+	LongUrl    string    `json:"longUrl" bson:"longUrl"`
+	ShortId    string    `json:"-" bson:"shortId"`
 	CreateTime time.Time `json:"-" bson:"createTime"`
 }
 
@@ -52,13 +52,13 @@ func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	urlRec := urlRecord{
-		LongUrl: longUrl.String(),
+		LongUrl:    longUrl.String(),
 		CreateTime: time.Now(),
 	}
 
 	for try := 0; try < maxTries; try++ {
 
-		shortIdNum := s.generateShortIdNumber(try,random)
+		shortIdNum := s.generateShortIdNumber(try, random)
 		urlRec.ShortId = basenconv.FormatBase62(shortIdNum)
 
 		err = s.urlsColl().Insert(urlRec)
@@ -82,7 +82,7 @@ func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL, error) {
 	return s.buildShortenedUrl(longUrl, host, urlRec), nil
 }
 
-func (s *Service) generateShortIdNumber(try int,random *rand.Rand) uint64{
+func (s *Service) generateShortIdNumber(try int, random *rand.Rand) uint64 {
 	//31 should be extracted as a configuration, probably
 	//still, not the best solution, sometimes the shortId will be short, othertimes long
 	return uint64(random.Intn(1<<31 - 1))
@@ -95,4 +95,35 @@ func (s *Service) buildShortenedUrl(original *url.URL, host string, urlRecord ur
 	shortUrl.Path = urlRecord.ShortId
 
 	return shortUrl
+}
+
+func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, error) {
+
+	path := shortUrl.Path
+	if len(path) == 0 {
+		return nil, errors.New("expected url to have a path")
+	}
+
+	if path[0] == '/' {
+		path = path[1:]
+	}
+
+	var urlRecords []urlRecord
+	err := s.urlsColl().Find(bson.M{db.UrlsFieldShortId: path}).
+		All(&urlRecords)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(urlRecords) == 0 {
+		return nil, nil
+	}
+
+	longUrl, err := url.Parse(urlRecords[0].LongUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return longUrl, nil
 }

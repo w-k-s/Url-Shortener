@@ -21,3 +21,8 @@ func (r ShortenUrlRequest) Validate() (*url.URL, error) {
 
 	return rawUrl, nil
 }
+
+type UrlResponse struct {
+	LongUrl  string `json:"longUrl"`
+	ShortUrl string `json:"shortUrl"`
+}

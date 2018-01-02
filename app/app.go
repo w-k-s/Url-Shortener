@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/w-k-s/short-url/db"
 	"gopkg.in/mgo.v2"
 	"html/template"
 	"log"
@@ -14,10 +13,10 @@ type App struct {
 	Logger    *log.Logger
 }
 
-func Init() *App {
+func Init(dataSourceName string) *App {
 	tpl := template.Must(template.ParseGlob("./templates/*"))
 
-	session, err := mgo.Dial(db.ConnectionString)
+	session, err := mgo.Dial(dataSourceName)
 	if err != nil {
 		panic(err)
 	}
