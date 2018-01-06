@@ -8,20 +8,24 @@ import (
 	"github.com/w-k-s/short-url/home"
 	"github.com/w-k-s/short-url/urlshortener"
 	"log"
+	"os"
 	"net/http"
+	"strings"
 )
 
 // global flags
 var port int
-var dbConnString string
 
 func init() {
 	flag.IntVar(&port, "port", 8080, "Specify the port to listen to.")
-	flag.StringVar(&dbConnString, "dbdsn", "mongodb://localhost/shorturl", "Specifies the MongoDB connection string")
-
+	
 	flag.Parse()
 
-	log.Printf("Port: %d", 8080)
+	dbIp :=os.Getenv("MONGO_PORT")
+	dbIp = strings.Replace(dbIp,"tcp","mongodb",1)
+	dbConnString = fmt.Sprintf("%s/shorturl",dbIp)
+
+	log.Printf("Port: %d", port)
 	log.Printf("Connection String: %s", dbConnString)
 	log.Println("Init Complete")
 }
