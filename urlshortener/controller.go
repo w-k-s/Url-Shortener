@@ -66,12 +66,12 @@ func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	longUrl, err := c.service.GetLongUrl(shortUrl)
+	longUrl, found, err := c.service.GetLongUrl(shortUrl)
 	if err != nil {
 		a.EncodeNewErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if longUrl == nil {
+	if !found {
 		a.EncodeNewErrorJSON(w, "Not Found", http.StatusNotFound)
 		return
 	}
@@ -84,6 +84,23 @@ func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		a.EncodeNewErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (c *Controller) RedirectToLongUrl(w http.ResponseWriter, req *http.Request) {
+
+	longUrl, found, err := c.service.GetLongUrl(req.URL)
+
+	if found {
+		http.Redirect(w, req, longUrl.String(), http.StatusSeeOther)
+		return
+	} else {
+		a.EncodeNewErrorJSON(w, "Not Found", http.StatusNotFound)
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

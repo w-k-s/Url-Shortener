@@ -97,11 +97,11 @@ func (s *Service) buildShortenedUrl(original *url.URL, host string, urlRecord ur
 	return shortUrl
 }
 
-func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, error) {
+func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, bool, error) {
 
 	path := shortUrl.Path
 	if len(path) == 0 {
-		return nil, errors.New("expected url to have a path")
+		return nil, false, errors.New("expected url to have a path")
 	}
 
 	if path[0] == '/' {
@@ -113,17 +113,17 @@ func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, error) {
 		All(&urlRecords)
 
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if len(urlRecords) == 0 {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	longUrl, err := url.Parse(urlRecords[0].LongUrl)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return longUrl, nil
+	return longUrl, true, nil
 }

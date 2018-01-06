@@ -1,31 +1,39 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/w-k-s/short-url/app"
 	"github.com/w-k-s/short-url/home"
 	"github.com/w-k-s/short-url/urlshortener"
 	"log"
-	"os"
 	"net/http"
+	"os"
 	"strings"
 )
 
-// global flags
-var port int
+var dbConnString string
+var address string
 
 func init() {
-	flag.IntVar(&port, "port", 8080, "Specify the port to listen to.")
-	
-	flag.Parse()
 
-	dbIp :=os.Getenv("MONGO_PORT")
-	dbIp = strings.Replace(dbIp,"tcp","mongodb",1)
-	dbConnString = fmt.Sprintf("%s/shorturl",dbIp)
+	address = os.Getenv("ADDRESS")
+	if len(address) == 0 {
+		address = ":8080"
+	}
 
-	log.Printf("Port: %d", port)
+	// MONGO_PORT is an env variable created by docker
+	// when the web app container is linked to a container named 'mongo'
+	// MONGO_PORT is the ip address of the container
+	dbAddress := os.Getenv("MONGO_PORT")
+	if len(dbAddress) != 0 {
+		dbAddress := strings.Replace(dbAddress, "tcp", "mongodb", 1)
+		dbConnString = fmt.Sprintf("%s/shorturl", dbAddress)
+	} else {
+		dbConnString = "mongodb://localhost:27017/shorturl"
+	}
+
+	log.Printf("Address: '%s'", address)
 	log.Printf("Connection String: %s", dbConnString)
 	log.Println("Init Complete")
 }
@@ -37,8 +45,8 @@ func main() {
 
 	r := mux.NewRouter()
 
-	home.Configure(app, r)
 	urlshortener.Configure(app, r)
+	home.Configure(app, r)
 
-	http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	http.ListenAndServe(address, r)
 }
