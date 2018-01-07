@@ -17,7 +17,13 @@ func NewController(app *a.App) *Controller {
 
 func (c *Controller) Index(w http.ResponseWriter, req *http.Request) {
 
-	err := c.app.Templates.ExecuteTemplate(w, "home.gohtml", nil)
+	data := struct{
+		Host string
+	}{
+		req.Host,
+	}
+
+	err := c.app.Templates.ExecuteTemplate(w, "home.gohtml", &data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

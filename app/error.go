@@ -14,9 +14,13 @@ func (e Error) Error() string {
 }
 
 func EncodeNewErrorJSON(w http.ResponseWriter, error string, code int) {
-	bytes, err := json.Marshal(Error{Message: error})
-	if err != nil {
-		panic(err)
+	
+	encoder := json.NewEncoder(w)
+
+	w.Header().Set("Content-Type","application/json;charset=utf-8")
+	w.WriteHeader(code)
+	err := encoder.Encode(Error{Message: error})
+	if err != nil{
+		http.Error(w,err.Error(),http.StatusInternalServerError)
 	}
-	http.Error(w, string(bytes), code)
 }

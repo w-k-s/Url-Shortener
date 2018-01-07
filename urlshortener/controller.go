@@ -39,6 +39,7 @@ func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type","application/json;charset=utf-8")
 	encoder := json.NewEncoder(w)
 	err = encoder.Encode(&UrlResponse{
 		LongUrl:  longUrl.String(),
@@ -76,6 +77,7 @@ func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type","application/json;charset=utf-8")
 	encoder := json.NewEncoder(w)
 	err = encoder.Encode(&UrlResponse{
 		LongUrl:  longUrl.String(),
