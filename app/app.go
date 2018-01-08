@@ -13,15 +13,15 @@ type App struct {
 	Logger    *log.Logger
 }
 
-func Init(dataSourceName string) *App {
+func Init(host string) *App {
+	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
+
 	tpl := template.Must(template.ParseGlob("./templates/*"))
 
-	session, err := mgo.Dial(dataSourceName)
+	session, err := mgo.Dial(host)
 	if err != nil {
-		panic(err)
+		logger.Panicf("Could not connect to datastore with host %s - %v", host, err)
 	}
-
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 
 	app := &App{
 		tpl,

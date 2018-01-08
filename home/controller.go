@@ -17,7 +17,7 @@ func NewController(app *a.App) *Controller {
 
 func (c *Controller) Index(w http.ResponseWriter, req *http.Request) {
 
-	data := struct{
+	data := struct {
 		Host string
 	}{
 		req.Host,

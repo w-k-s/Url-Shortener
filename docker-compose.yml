@@ -1,0 +1,19 @@
+version: '3.1' #docker-compose syntax version
+
+services:
+  short-url:
+    build: . #build current directory
+    image: short-url #image will be named 'short-url'
+    container_name: short-url
+    environment:
+      ADDRESS: ":8080"
+      MONGO_ADDRESS: "mongodb://datastore:27017/shorturl"
+    ports:
+      - 8080:8080
+  
+  datastore: #https://docs.docker.com/compose/networking/
+    image: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - ~/data:/data/db

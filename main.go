@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/w-k-s/short-url/app"
 	"github.com/w-k-s/short-url/home"
@@ -9,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 )
 
 var dbConnString string
@@ -22,14 +20,8 @@ func init() {
 		address = ":8080"
 	}
 
-	// MONGO_PORT is an env variable created by docker
-	// when the web app container is linked to a container named 'mongo'
-	// MONGO_PORT is the ip address of the container
-	dbAddress := os.Getenv("MONGO_PORT")
-	if len(dbAddress) != 0 {
-		dbAddress := strings.Replace(dbAddress, "tcp", "mongodb", 1)
-		dbConnString = fmt.Sprintf("%s/shorturl", dbAddress)
-	} else {
+	dbConnString = os.Getenv("MONGO_ADDRESS")
+	if len(dbConnString) == 0 {
 		dbConnString = "mongodb://localhost:27017/shorturl"
 	}
 
