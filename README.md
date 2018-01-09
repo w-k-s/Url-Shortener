@@ -7,5 +7,5 @@ Check List
 2. Host locally on docker
 [-] a. Run on docker
 [-] b. Use Environmental variables to supply port and database connection
-- c. Create Docker-compose file
+[-] c. Create Docker-compose file
 3. Publish on AWS
