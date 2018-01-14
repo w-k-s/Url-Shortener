@@ -1,14 +1,26 @@
+BUILD_NAME = short-url
+
+clean:
+	rm -f $(BUILD_NAME)
+
 fmt:
 	gofmt -w .
 
 run: fmt
 	go run *.go
 
-run-local-docker: fmt
-	go build 
-	docker-compose build
-	docker-compose up -d
+test: fmt
+	go test ./...
 
-end-local-docker:
-	docker-compose stop
-	docker-compose rm
+docker-run-local: clean fmt
+	go build 
+	docker-compose -f docker-compose.local.yml build
+	docker-compose -f docker-compose.local.yml up -d
+
+docker-end-local:
+	docker-compose -f docker-compose.local.yml stop
+	docker-compose -f docker-compose.local.yml rm
+
+docker-hub-publish: clean fmt test
+	docker-compose -f docker-compose.production.yml build
+	docker-compose -f docker-compose.production.yml push short-url

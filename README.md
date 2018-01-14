@@ -9,3 +9,8 @@ Check List
 [-] b. Use Environmental variables to supply port and database connection
 [-] c. Create Docker-compose file
 3. Publish on AWS
+[-] Set up remote mongodb
+[-] Create seperate local and prod docker-compose files
+ -  Configure app to run on HTTPS
+ -  Host on AWS
+4. Refactor 
