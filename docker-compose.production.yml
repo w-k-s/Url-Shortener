@@ -8,6 +8,6 @@ services:
     env_file:
       - secrets.env
     environment:
-      ADDRESS: ":80"
+      ADDRESS: ":443"
     ports:
-      - 80:80
+      - 443:443

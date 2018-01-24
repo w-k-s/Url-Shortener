@@ -1,3 +1,5 @@
+Visit the website: [small.ml](https://small.ml)
+
 Check List
 1. Implement Backend API
 [-] a. Return Short Url
@@ -11,6 +13,6 @@ Check List
 3. Publish on AWS
 [-] Set up remote mongodb
 [-] Create seperate local and prod docker-compose files
- -  Configure app to run on HTTPS
- -  Host on AWS
+[-]  Configure app to run on HTTPS
+[-]  Host on AWS
 4. Refactor 

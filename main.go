@@ -37,8 +37,13 @@ func main() {
 
 	r := mux.NewRouter()
 
+	//r.PathPrefix("/.well-known/").Handler(http.FileServer(http.Dir("./static/")))
+
 	urlshortener.Configure(app, r)
 	home.Configure(app, r)
 
-	http.ListenAndServe(address, r)
+	err := http.ListenAndServeTLS(address, "server.crt", "server.key", r)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 }
