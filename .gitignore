@@ -1,2 +1,4 @@
 short-url
 secrets.env
+server.key
+server.crt
