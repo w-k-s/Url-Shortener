@@ -6,9 +6,11 @@ services:
     image: short-url #image will be named 'short-url'
     container_name: short-url
     environment:
-      ADDRESS: ":443"
+      ADDRESS: ":8080"
+      ADDRESS_TLS: ":443"
       MONGO_ADDRESS: "mongodb://datastore:27017/shorturl"
     ports:
+      - 8080:8080
       - 443:443
   
   datastore: #https://docs.docker.com/compose/networking/
