@@ -32,7 +32,7 @@ func (s *Service) urlsColl() *mgo.Collection {
 	return s.app.UrlsColl()
 }
 
-func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL, error) {
+func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, error) {
 
 	var urlRecords []urlRecord
 	err := s.urlsColl().Find(bson.M{db.UrlsFieldLongUrl: longUrl.String()}).All(&urlRecords)
@@ -44,7 +44,7 @@ func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL, error) {
 	if len(urlRecords) == 1 {
 		s.app.Logger.Println("Record found")
 		record := urlRecords[0]
-		return s.buildShortenedUrl(longUrl, host, record), nil
+		return s.buildShortenedUrl(reqUrl, record), nil
 	}
 
 	maxTries := 3
@@ -79,7 +79,7 @@ func (s *Service) ShortenUrl(host string, longUrl *url.URL) (*url.URL, error) {
 		return nil, errors.New("Could not save url after several attempts")
 	}
 
-	return s.buildShortenedUrl(longUrl, host, urlRec), nil
+	return s.buildShortenedUrl(reqUrl, urlRec), nil
 }
 
 func (s *Service) generateShortIdNumber(try int, random *rand.Rand) uint64 {
@@ -88,13 +88,14 @@ func (s *Service) generateShortIdNumber(try int, random *rand.Rand) uint64 {
 	return uint64(random.Intn(1<<31 - 1))
 }
 
-func (s *Service) buildShortenedUrl(original *url.URL, host string, urlRecord urlRecord) *url.URL {
+func (s *Service) buildShortenedUrl(reqUrl *url.URL, urlRecord urlRecord) *url.URL {
+	s.app.Logger.Println("reqUrl.Host = ", reqUrl.String())
 
-	shortUrl, _ := url.Parse(original.String())
-	shortUrl.Host = host
-	shortUrl.Path = urlRecord.ShortId
-
-	return shortUrl
+	return &url.URL{
+		Scheme: reqUrl.Scheme,
+		Host:   reqUrl.Host,
+		Path:   urlRecord.ShortId,
+	}
 }
 
 func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, bool, error) {

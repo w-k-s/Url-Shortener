@@ -19,6 +19,16 @@ func NewController(app *a.App) *Controller {
 
 func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
 
+	scheme := req.URL.Scheme
+	if len(scheme) == 0 {
+		scheme = "https"
+	}
+
+	reqUrl := &url.URL{
+		Scheme: scheme,
+		Host:   req.Host,
+	}
+
 	var shortenReq ShortenUrlRequest
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&shortenReq)
@@ -33,7 +43,7 @@ func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortUrl, err := c.service.ShortenUrl(req.Host, longUrl)
+	shortUrl, err := c.service.ShortenUrl(reqUrl, longUrl)
 	if err != nil {
 		a.EncodeNewErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
