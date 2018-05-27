@@ -25,7 +25,6 @@ var domains map[string]bool
 var autocertManager *autocert.Manager
 
 func init() {
-
 	address = os.Getenv("ADDRESS")
 	if len(address) == 0 {
 		address = ":8080"
@@ -57,33 +56,42 @@ func init() {
 	log.Printf("Address: '%s'", address)
 	log.Printf("AddressTLS: '%s'", addressTLS)
 	log.Printf("Connection String: %s", dbConnString)
-	log.Printf("Production: %s", production)
+	log.Printf("Production: %v", production)
 	log.Printf("CertDir: %s", certDir)
-	log.Printf("Domains: %s", domains)
+	log.Printf("Domains: %v", domains)
 	log.Println("Init Complete")
 }
 
 func main() {
-
 	app := app.Init(dbConnString)
 	defer app.Session.Close()
 
-	r := mux.NewRouter()
+	httpsRerouter := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+	})
 
-	urlshortener.Configure(app, r)
-	home.Configure(app, r)
+	mainRouter := mux.NewRouter()
 
+	urlshortener.Configure(app, mainRouter)
+	home.Configure(app, mainRouter)
+
+	var httpRouter http.Handler
 	if production {
 		initAutocertManager()
+		httpRouter = httpsRerouter
+	} else {
+		httpRouter = mainRouter
 	}
 
 	errchan := make(chan error, 1)
-	listenAndServeHTTPServer(r, errchan)
-	listenAndServeHTTPSServer(r, errchan)
+	listenAndServeHTTPServer(httpRouter, errchan)
+	listenAndServeHTTPSServer(mainRouter, errchan)
 
 	err := <-errchan
-	log.Fatalf("Shutting down server with error: %s", err.Error())
+	log.Fatalf("Shutting down server with error: %s", err)
 }
+
+//HTTPS Server
 
 func initAutocertManager() {
 	hostPolicy := func(ctx context.Context, host string) error {
@@ -91,8 +99,8 @@ func initAutocertManager() {
 			return nil
 		}
 
-		log.Fatalf("acme/autocert: only '%s' host is allowed", domains)
-		return fmt.Errorf("acme/autocert: only '%s' host is allowed", domains)
+		log.Fatalf("acme/autocert: only '%v' host is allowed", domains)
+		return fmt.Errorf("acme/autocert: only '%v' host is allowed", domains)
 	}
 
 	autocertManager = &autocert.Manager{
@@ -102,10 +110,10 @@ func initAutocertManager() {
 	}
 }
 
-//HTTPS Server
+func listenAndServeHTTPSServer(h http.Handler, errchan chan error) {
 
-func listenAndServeHTTPSServer(r *mux.Router, errchan chan error) {
-	httpsServer := createServer(r, addressTLS)
+	httpsServer := createServer(h, addressTLS)
+
 	go func(c chan error) {
 		if production {
 
@@ -113,14 +121,18 @@ func listenAndServeHTTPSServer(r *mux.Router, errchan chan error) {
 
 			err := httpsServer.ListenAndServeTLS("", "")
 			if err != nil {
-				c <- fmt.Errorf("Error while configuring HTTPS Server (production mode): %s", err)
+				c <- fmt.Errorf("Error while configuring HTTPS Server (production mode): %v", err)
 			}
+
 		} else {
+
 			err := httpsServer.ListenAndServeTLS("server.crt", "server.key")
 			if err != nil {
-				c <- fmt.Errorf("Error while configuring HTTPS Server (development mode): %s", err)
+				c <- fmt.Errorf("Error while configuring HTTPS Server (development mode): %v", err)
 			}
+
 		}
+
 	}(errchan)
 }
 
@@ -131,8 +143,9 @@ func isHostAllowed(host string) bool {
 
 //HTTP Server
 
-func listenAndServeHTTPServer(r *mux.Router, errchan chan error) {
-	httpServer := createServer(r, address)
+func listenAndServeHTTPServer(h http.Handler, errchan chan error) {
+
+	httpServer := createServer(h, address)
 	go func(c chan error) {
 		if autocertManager != nil {
 			// allow autocert handle Let's Encrypt auth callbacks over HTTP.
@@ -141,16 +154,16 @@ func listenAndServeHTTPServer(r *mux.Router, errchan chan error) {
 		}
 		err := httpServer.ListenAndServe()
 		if err != nil {
-			c <- fmt.Errorf("Error while configuring HTTP Server: %s", err)
+			c <- fmt.Errorf("Error while configuring HTTP Server: %v", err)
 		}
 	}(errchan)
 }
 
 //Utils
 
-func createServer(r *mux.Router, addr string) *http.Server {
+func createServer(h http.Handler, addr string) *http.Server {
 	return &http.Server{
-		Handler: r,
+		Handler: h,
 		Addr:    addr,
 		// set timeouts so that a slow or malicious client doesn't
 		// hold resources forever
