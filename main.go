@@ -99,8 +99,9 @@ func initAutocertManager() {
 			return nil
 		}
 
-		log.Fatalf("acme/autocert: only '%v' host is allowed", domains)
-		return fmt.Errorf("acme/autocert: only '%v' host is allowed", domains)
+		err := fmt.Errorf("acme/autocert: host '%v' not allowed. Allowed domains: '%v'", host, domains)
+		log.Println(err)
+		return err
 	}
 
 	autocertManager = &autocert.Manager{
