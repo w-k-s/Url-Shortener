@@ -1,96 +1,63 @@
 package urlshortener
 
 import (
-	"errors"
-	"github.com/w-k-s/basenconv"
-	a "github.com/w-k-s/short-url/app"
-	"github.com/w-k-s/short-url/db"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
-	"math/rand"
+	"fmt"
+	err "github.com/w-k-s/short-url/error"
+	"log"
 	"net/url"
 	"time"
 )
 
-type urlRecord struct {
-	LongUrl    string    `json:"longUrl" bson:"longUrl"`
-	ShortId    string    `json:"-" bson:"shortId"`
-	CreateTime time.Time `json:"-" bson:"createTime"`
-}
-
 type Service struct {
-	app *a.App
+	repo      *URLRepository
+	logger    *log.Logger
+	generator ShortIDGenerator
 }
 
-func NewService(app *a.App) *Service {
+func NewService(repo *URLRepository, logger *log.Logger) *Service {
 	return &Service{
-		app,
+		repo,
+		logger,
+		NewShortIDGenerator(),
 	}
 }
 
-func (s *Service) urlsColl() *mgo.Collection {
-	return s.app.UrlsColl()
-}
+func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.Err) {
 
-func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, error) {
+	record, _ := s.repo.ShortURL(longUrl.String())
 
-	var urlRecords []urlRecord
-	err := s.urlsColl().Find(bson.M{db.UrlsFieldLongUrl: longUrl.String()}).All(&urlRecords)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(urlRecords) == 1 {
-		s.app.Logger.Println("Record found")
-		record := urlRecords[0]
-		return s.buildShortenedUrl(reqUrl, record), nil
+	if record != nil {
+		s.logger.Printf("Record found. Long Url: %s, shortUrl: %s", longUrl, record.ShortId)
+		return buildShortenedUrl(reqUrl, record), nil
 	}
 
 	maxTries := 3
 	inserted := false
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var err error
 
-	urlRec := urlRecord{
-		LongUrl:    longUrl.String(),
-		CreateTime: time.Now(),
-	}
+	for try := 0; try < maxTries && !inserted; try++ {
+		record, err = s.repo.SaveRecord(&URLRecord{
+			LongUrl:    longUrl.String(),
+			ShortId:    s.generator.Generate(),
+			CreateTime: time.Now(),
+		})
 
-	for try := 0; try < maxTries; try++ {
-
-		shortIdNum := s.generateShortIdNumber(try, random)
-		urlRec.ShortId = basenconv.FormatBase62(shortIdNum)
-
-		err = s.urlsColl().Insert(urlRec)
-		if err == nil {
-			inserted = true
-			break
-		}
-		if mgo.IsDup(err) {
-			s.app.Logger.Println("Duplication Error")
-			continue
-		} else {
-			s.app.Logger.Println("Insert error", err.Error())
-			return nil, err
-		}
+		s.logger.Printf("longUrl '%s' (Attempt %d): Using shortId '%d'. Error: %s", longUrl, try, record.ShortId, err)
+		inserted = err == nil
 	}
 
 	if !inserted {
-		return nil, errors.New("Could not save url after several attempts")
+		return nil, NewError(
+			ShortenURLFailedToSave,
+			fmt.Sprintf("Failed to save after %d attempts", maxTries),
+			map[string]string{"error": err.Error()},
+		)
 	}
 
-	return s.buildShortenedUrl(reqUrl, urlRec), nil
+	return buildShortenedUrl(reqUrl, record), nil
 }
 
-func (s *Service) generateShortIdNumber(try int, random *rand.Rand) uint64 {
-	//31 should be extracted as a configuration, probably
-	//still, not the best solution, sometimes the shortId will be short, othertimes long
-	return uint64(random.Intn(1<<31 - 1))
-}
-
-func (s *Service) buildShortenedUrl(reqUrl *url.URL, urlRecord urlRecord) *url.URL {
-	s.app.Logger.Println("reqUrl.Host = ", reqUrl.String())
-
+func buildShortenedUrl(reqUrl *url.URL, urlRecord *URLRecord) *url.URL {
 	return &url.URL{
 		Scheme: reqUrl.Scheme,
 		Host:   reqUrl.Host,
@@ -98,33 +65,39 @@ func (s *Service) buildShortenedUrl(reqUrl *url.URL, urlRecord urlRecord) *url.U
 	}
 }
 
-func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, bool, error) {
+func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, err.Err) {
 
+	var shortId string
 	path := shortUrl.Path
 	if len(path) == 0 {
-		return nil, false, errors.New("expected url to have a path")
+		return nil, NewError(
+			RetrieveFullURLValidation,
+			fmt.Sprintf("The URL '%s' does not have a path.", shortUrl),
+			nil,
+		)
 	}
 
 	if path[0] == '/' {
-		path = path[1:]
+		shortId = path[1:]
 	}
 
-	var urlRecords []urlRecord
-	err := s.urlsColl().Find(bson.M{db.UrlsFieldShortId: path}).
-		All(&urlRecords)
-
+	record, err := s.repo.LongURL(shortId)
 	if err != nil {
-		return nil, false, err
+		return nil, NewError(
+			RetrieveFullURLNotFound,
+			fmt.Sprintf("No URL for %s", shortId),
+			map[string]string{"error": err.Error()},
+		)
 	}
 
-	if len(urlRecords) == 0 {
-		return nil, false, nil
-	}
-
-	longUrl, err := url.Parse(urlRecords[0].LongUrl)
+	longUrl, err := url.Parse(record.LongUrl)
 	if err != nil {
-		return nil, false, err
+		return nil, NewError(
+			RetrieveFullURLParsing,
+			fmt.Sprintf("Failed to parse %s", record.LongUrl),
+			map[string]string{"error": err.Error()},
+		)
 	}
 
-	return longUrl, true, nil
+	return longUrl, nil
 }

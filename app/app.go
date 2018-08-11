@@ -1,7 +1,7 @@
 package app
 
 import (
-	"gopkg.in/mgo.v2"
+	"github.com/w-k-s/short-url/db"
 	"html/template"
 	"log"
 	"os"
@@ -9,27 +9,22 @@ import (
 
 type App struct {
 	Templates *template.Template
-	Session   *mgo.Session
 	Logger    *log.Logger
+	Db        *db.Db
 }
 
-func Init(host string) *App {
+func Init(host string, dbName string) *App {
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 
 	tpl := template.Must(template.ParseGlob("./templates/*"))
 
-	session, err := mgo.Dial(host)
-	if err != nil {
-		logger.Panicf("Could not connect to datastore with host %s - %v", host, err)
-	}
+	db := db.New(host, dbName)
 
 	app := &App{
 		tpl,
-		session,
 		logger,
+		db,
 	}
-
-	app.ensureIndexes()
 
 	return app
 }

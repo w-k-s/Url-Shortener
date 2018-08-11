@@ -63,8 +63,8 @@ func init() {
 }
 
 func main() {
-	app := app.Init(dbConnString)
-	defer app.Session.Close()
+	app := app.Init(dbConnString, "shorturl")
+	defer app.Db.Close()
 
 	httpsRerouter := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
