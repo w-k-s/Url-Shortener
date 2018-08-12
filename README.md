@@ -28,7 +28,7 @@ Visit the website: [small.ml](https://small.ml)
 - [x] Move database logic to repository
 - [x] Improve error responses. Go's error messages are short and useless.
 - [ ] Unit Tests
-- [ ] Set up CircleCI
+- [x] Set up CircleCI
 - [x] Use swagger.io on the home screen
 
 Useful Resources
