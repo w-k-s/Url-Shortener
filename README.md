@@ -30,6 +30,7 @@ Visit the website: [small.ml](https://small.ml)
 - [ ] Unit Tests
 - [x] Set up CircleCI
 - [x] Use swagger.io on the home screen
+- [ ] Consistent naming e.g. URL/Url
 
 Useful Resources
 
