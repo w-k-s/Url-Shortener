@@ -13,7 +13,8 @@ run: dep fmt
 	go run *.go
 
 test: fmt
-	go test ./...
+	#Ignore the vendor directory
+	go test  `go list ./... | grep -v vendor`
 
 docker-run-local: clean dep fmt
 	go build 
