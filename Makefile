@@ -6,13 +6,16 @@ clean:
 fmt:
 	gofmt -w .
 
-run: fmt
+dep:
+	godep save
+
+run: dep fmt
 	go run *.go
 
 test: fmt
 	go test ./...
 
-docker-run-local: clean fmt
+docker-run-local: clean dep fmt
 	go build 
 	docker-compose -f docker-compose.local.yml build
 	docker-compose -f docker-compose.local.yml up -d
@@ -21,6 +24,6 @@ docker-end-local:
 	docker-compose -f docker-compose.local.yml stop
 	docker-compose -f docker-compose.local.yml rm
 
-docker-hub-publish: clean fmt test
+docker-hub-publish: clean dep fmt test
 	docker-compose -f docker-compose.production.yml build
 	docker-compose -f docker-compose.production.yml push short-url
