@@ -81,13 +81,14 @@ func SendError(w http.ResponseWriter, e err.Err) {
 func httpStatusCode(e err.Code) int {
 	switch e {
 	case ShortenURLValidation:
+		fallthrough
 	case RetrieveFullURLValidation:
 		return http.StatusBadRequest
 	case RetrieveFullURLNotFound:
+		fallthrough
 	case RedirectionFullURLNotFound:
 		return http.StatusNotFound
 	default:
 		return http.StatusInternalServerError
 	}
-	return http.StatusInternalServerError
 }

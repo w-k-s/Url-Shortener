@@ -11,7 +11,7 @@ services:
       MONGO_ADDRESS: "mongodb://datastore:27017/shorturl"
     ports:
       - 8080:8080
-      - 443:443
+      - 4430:443
   
   datastore: #https://docs.docker.com/compose/networking/
     image: mongo

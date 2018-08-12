@@ -1,0 +1,103 @@
+swagger: "2.0"
+info:
+  description: "URL Shortening REST API"
+  version: "1.0.0"
+  title: "URL Shortening API"
+  contact:
+    name: "w-k-s"
+    url: "http://www.github.com/w-k-s"
+    email: "development.asfour@gmail.com"
+  license:
+    name: "Mozilla Public License 2.0"
+    url: "https://tldrlegal.com/license/mozilla-public-license-2.0-(mpl-2)#fulltext"
+basePath: "/urlshortener/v1"
+schemes:
+- "https"
+tags:
+- name: url
+  description: Shortening & Retrieving Full URL.
+paths:
+  /url:
+    post:
+      tags: 
+      - "url"
+      summary: "Shorten URL"
+      description: "Shortens given long url"
+      operationId: "shortenUrl"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Shorten URL Body"
+        required: true
+        schema:
+          $ref: "#/definitions/ShortenURLRequest"
+      responses:
+        200:
+          description: "Short URL Created"
+          schema:
+            $ref: "#/definitions/URLPair"
+        400:
+          description: "Invalid parameters"
+          schema:
+            $ref: "#/definitions/ErrorSchema"
+        500:
+          description: "Error encoding/decoding data or Unknown errors"
+          schema:
+            $ref: "#/definitions/ErrorSchema"
+    
+    get:
+      tags:
+      - "url"
+      summary: "Retrieve Full URL"
+      description: "Retrieves Full URL given short url"
+      operationId: "retrieveFullURL"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "query"
+        type: "string"
+        name: "shortUrl"
+        description: "short url"
+        required: true
+      responses:
+        200:
+          description: "Full URL found"
+          schema:
+            $ref: "#/definitions/URLPair"
+        404:
+          description: "Full URL not found"
+          schema:
+            $ref: "#/definitions/ErrorSchema"
+        500:
+          description: "Error encoding/decoding data or Unknown errors"
+          schema:
+            $ref: "#/definitions/ErrorSchema"
+definitions:
+  ShortenURLRequest:
+    type: "object"
+    required:
+      - "longUrl"
+    properties:
+      longUrl:
+        type: "string"
+  URLPair:
+    type: "object"
+    properties:
+      longUrl:
+        type: "string"
+      shortUrl:
+        type: "string"
+  ErrorSchema:
+    type: "object"
+    properties:
+      code:
+        type: "integer"
+      domain:
+        type: "string"
+      message:
+        type: "string"
+      fields:
+        type: "object"
+        

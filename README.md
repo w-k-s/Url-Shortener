@@ -1,21 +1,35 @@
+# Short-url
+
 Visit the website: [small.ml](https://small.ml)
 
-Check List
+## Check List
+
 1. Implement Backend API
-[-] a. Return Short Url
-[-] b. Return Long Url
-[-] c. Redirect using Short Url
-[-] d. Document usage on home page
+
+- [x] Return Short Url
+- [x] Return Long Url
+- [x] Redirect using Short Url
+- [x] Document usage on home page
+
 2. Host locally on docker
-[-] a. Run on docker
-[-] b. Use Environmental variables to supply port and database connection
-[-] c. Create Docker-compose file
+
+- [x] Run on docker
+- [x] Use Environmental variables to supply port and database connection
+- [x] Create Docker-compose file
+
 3. Publish on AWS
-[-] Set up remote mongodb
-[-] Create seperate local and prod docker-compose files
-[-]  Configure app to run on HTTPS
-[-]  Host on AWS
+
+- [x] Set up remote mongodb
+- [x] Create seperate local and prod docker-compose files
+- [x] Configure app to run on HTTPS
+- [x] Host on AWS
+
 4. Refactor 
+- [x] Move database logic to repository
+- [x] Improve error responses. Go's error messages are short and useless.
+- [ ] Unit Tests
+- [ ] Set up CircleCI
+- [x] Use swagger.io on the home screen
 
 Useful Resources
 

@@ -24,7 +24,11 @@ var certDir string
 var domains map[string]bool
 var autocertManager *autocert.Manager
 
+const STATIC_DIR string = "/public/"
+
 func init() {
+	production = os.Getenv("PROD") == "1"
+
 	address = os.Getenv("ADDRESS")
 	if len(address) == 0 {
 		address = ":8080"
@@ -32,15 +36,13 @@ func init() {
 
 	addressTLS = os.Getenv("ADDRESS_TLS")
 	if len(addressTLS) == 0 {
-		addressTLS = ":443"
+		addressTLS = ":4430"
 	}
 
 	dbConnString = os.Getenv("MONGO_ADDRESS")
 	if len(dbConnString) == 0 {
 		dbConnString = "mongodb://localhost:27017/shorturl"
 	}
-
-	production = os.Getenv("PROD") == "1"
 
 	certDir = os.Getenv("CERT_DIR")
 	if len(certDir) == 0 {
@@ -59,11 +61,11 @@ func init() {
 	log.Printf("Production: %v", production)
 	log.Printf("CertDir: %s", certDir)
 	log.Printf("Domains: %v", domains)
-	log.Println("Init Complete")
+	log.Printf("Init Complete. Running on %s and %s", address, addressTLS)
 }
 
 func main() {
-	app := app.Init(dbConnString, "shorturl")
+	app := app.Init(dbConnString)
 	defer app.Db.Close()
 
 	httpsRerouter := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +76,10 @@ func main() {
 
 	urlshortener.Configure(app, mainRouter)
 	home.Configure(app, mainRouter)
+
+	mainRouter.
+		PathPrefix(STATIC_DIR).
+		Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("."+STATIC_DIR))))
 
 	var httpRouter http.Handler
 	if production {

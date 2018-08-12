@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"gopkg.in/mgo.v2"
+	"strings"
 )
 
 type Db struct {
@@ -10,10 +11,11 @@ type Db struct {
 	name    string
 }
 
-func New(host string, name string) *Db {
-	session, err := mgo.Dial(host)
+func New(connString string) *Db {
+	name := connString[strings.LastIndex(connString, "/")+1:]
+	session, err := mgo.Dial(connString)
 	if err != nil {
-		panic(fmt.Sprintf("Could not connect to datastore with host %s - %v", host, err))
+		panic(fmt.Sprintf("Could not connect to datastore with host %s - %v", connString, err))
 	}
 
 	return &Db{
