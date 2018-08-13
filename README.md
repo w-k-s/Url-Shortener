@@ -35,3 +35,4 @@ Visit the website: [small.ml](https://small.ml)
 Useful Resources
 
 1. [Automating HTTPS with LetsEncrypt using autocert library](https://blog.kowalczyk.info/article/Jl3G/https-for-free-in-go-with-little-help-of-lets-encrypt.html)
+2. [Gaussian Distribution](https://stackoverflow.com/questions/29325069/how-to-generate-random-numbers-biased-towards-one-value-in-a-range)

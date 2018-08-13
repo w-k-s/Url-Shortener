@@ -31,14 +31,14 @@ func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.E
 		return buildShortenedUrl(reqUrl, record), nil
 	}
 
-	maxTries := 3
+	deviations := []Deviation{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
 	inserted := false
 	var err error
 
-	for try := 0; try < maxTries && !inserted; try++ {
+	for try, deviation := range deviations {
 		record, err = s.repo.SaveRecord(&URLRecord{
 			LongUrl:    longUrl.String(),
-			ShortId:    s.generator.Generate(),
+			ShortId:    s.generator.Generate(deviation),
 			CreateTime: time.Now(),
 		})
 
@@ -49,7 +49,7 @@ func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.E
 	if !inserted {
 		return nil, NewError(
 			ShortenURLFailedToSave,
-			fmt.Sprintf("Failed to save after %d attempts", maxTries),
+			fmt.Sprintf("Failed to find a shortId after %d attempts", len(deviations)),
 			map[string]string{"error": err.Error()},
 		)
 	}
