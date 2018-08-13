@@ -1,4 +1,4 @@
-package urlshortener
+package tests
 
 import (
 	u "github.com/w-k-s/short-url/urlshortener"
@@ -10,7 +10,7 @@ func TestGenerator(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 
-		gen := u.NewShortIDGenerator()
+		gen := u.DefaultShortIDGenerator{}
 		shortIds := []string{
 			gen.Generate(u.VERY_SHORT),
 			gen.Generate(u.SHORT),

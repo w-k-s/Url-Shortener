@@ -14,35 +14,37 @@ type Service struct {
 	generator ShortIDGenerator
 }
 
-func NewService(repo *URLRepository, logger *log.Logger) *Service {
+func NewService(repo *URLRepository, logger *log.Logger, generator ShortIDGenerator) *Service {
 	return &Service{
 		repo,
 		logger,
-		NewShortIDGenerator(),
+		generator,
 	}
 }
 
 func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.Err) {
 
-	record, _ := s.repo.ShortURL(longUrl.String())
+	existingRecord, _ := s.repo.ShortURL(longUrl.String())
 
-	if record != nil {
-		s.logger.Printf("Record found. Long Url: %s, shortUrl: %s", longUrl, record.ShortId)
-		return buildShortenedUrl(reqUrl, record), nil
+	if existingRecord != nil {
+		s.logger.Printf("Record found. Long Url: %s, shortUrl: %s", longUrl, existingRecord.ShortId)
+		return buildShortenedUrl(reqUrl, existingRecord), nil
 	}
 
 	deviations := []Deviation{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
 	inserted := false
+	var newRecord *URLRecord
 	var err error
 
-	for try, deviation := range deviations {
-		record, err = s.repo.SaveRecord(&URLRecord{
+	for try := 0; !inserted && try < len(deviations); try++ {
+		shortId := s.generator.Generate(deviations[try])
+		newRecord, err = s.repo.SaveRecord(&URLRecord{
 			LongUrl:    longUrl.String(),
-			ShortId:    s.generator.Generate(deviation),
+			ShortId:    shortId,
 			CreateTime: time.Now(),
 		})
 
-		s.logger.Printf("longUrl '%s' (Attempt %d): Using shortId '%d'. Error: %s", longUrl, try, record.ShortId, err)
+		s.logger.Printf("longUrl '%s' (Attempt %d): Using shortId '%s'. Error: %s", longUrl, try, shortId, err)
 		inserted = err == nil
 	}
 
@@ -54,7 +56,7 @@ func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.E
 		)
 	}
 
-	return buildShortenedUrl(reqUrl, record), nil
+	return buildShortenedUrl(reqUrl, newRecord), nil
 }
 
 func buildShortenedUrl(reqUrl *url.URL, urlRecord *URLRecord) *url.URL {

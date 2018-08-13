@@ -18,6 +18,7 @@ func NewController(app *app.App) *Controller {
 		NewService(
 			NewURLRepository(app.Db),
 			app.Logger,
+			DefaultShortIDGenerator{},
 		),
 	}
 }

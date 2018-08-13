@@ -79,5 +79,9 @@ func (ur *URLRepository) ShortURL(longUrl string) (*URLRecord, error) {
 		Find(bson.M{fieldLongUrl: longUrl}).
 		One(&record)
 
-	return &record, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &record, nil
 }
