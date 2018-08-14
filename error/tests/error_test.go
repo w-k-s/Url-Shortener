@@ -1,6 +1,7 @@
 package error
 
 import (
+	"github.com/stretchr/testify/assert"
 	err "github.com/w-k-s/short-url/error"
 	"reflect"
 	"testing"
@@ -21,52 +22,8 @@ func TestNewError(t *testing.T) {
 		fields,
 	)
 
-	if err.Code() != code {
-		t.Errorf("error.Code, got: %d, want: %d.", err.Code(), code)
-	}
-
-	if err.Domain() != domain {
-		t.Errorf("error.Domain, got: %s, want: %s.", err.Domain(), domain)
-	}
-
-	if err.Error() != message {
-		t.Errorf("error.Message, got: %s, want: %s.", err.Error(), message)
-	}
-
-	if !reflect.DeepEqual(fields, err.Fields()) {
-		t.Errorf("error.Fields, got: %v, want: %v.", err.Fields(), fields)
-	}
-}
-
-func TestTypeAssertionToError(t *testing.T) {
-
-	fields := map[string]string{"key": "value"}
-
-	var anError interface{} = err.NewError(
-		code,
-		domain,
-		message,
-		fields,
-	)
-
-	if _, ok := anError.(error); !ok {
-		t.Errorf("err.Error doesn't comply to `error` interface")
-	}
-}
-
-func TestTypeAssertionToErr(t *testing.T) {
-
-	fields := map[string]string{"key": "value"}
-
-	var anError interface{} = err.NewError(
-		code,
-		domain,
-		message,
-		fields,
-	)
-
-	if _, ok := anError.(err.Err); !ok {
-		t.Errorf("err.Error doesn't comply to `err.Err` interface")
-	}
-
+	assert.Equal(t, err.Code(), code, "error.Code, got: %d, want: %d.", err.Code(), code)
+	assert.Equal(t, err.Domain(), domain, "error.Domain, got: %s, want: %s.", err.Domain(), domain)
+	assert.Equal(t, err.Error(), message, "error.Message, got: %s, want: %s.", err.Error(), message)
+	assert.True(t, reflect.DeepEqual(fields, err.Fields()), "error.Fields, got: %v, want: %v.", err.Fields(), fields)
 }

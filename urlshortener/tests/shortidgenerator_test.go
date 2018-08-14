@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/stretchr/testify/assert"
 	u "github.com/w-k-s/short-url/urlshortener"
 	"sort"
 	"testing"
@@ -26,8 +27,6 @@ func TestGenerator(t *testing.T) {
 
 		sorted := sort.SliceIsSorted(shortIds, compareLengths)
 
-		if !sorted {
-			t.Errorf("Expected VERY_SHORT, SHORT, MEDIUM, VERY_LONG. Got %v", shortIds)
-		}
+		assert.True(t, sorted, "Expected VERY_SHORT, SHORT, MEDIUM, VERY_LONG. Got %v", shortIds)
 	}
 }

@@ -1,91 +1,97 @@
 package tests
 
-// import (
-// 	_ "fmt"
-// 	database "github.com/w-k-s/short-url/db"
-// 	repo "github.com/w-k-s/short-url/urlshortener"
-// 	"gopkg.in/mgo.v2"
-// 	"gopkg.in/mgo.v2/bson"
-// 	"os"
-// 	"testing"
-// 	"time"
-// )
+import (
+	_ "fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	database "github.com/w-k-s/short-url/db"
+	repo "github.com/w-k-s/short-url/urlshortener"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+	"testing"
+	"time"
+)
 
-// func TestMain(m *testing.M) {
-// 	setup()
-// 	retCode := m.Run()
-// 	tearDown()
-// 	os.Exit(retCode)
-// }
+type URLRepositoryTestSuite struct {
+	suite.Suite
+	db      *database.Db
+	urlRepo *repo.URLRepository
+	record  *repo.URLRecord
+}
 
-// var db *database.Db
-// var urlRepo *repo.URLRepository
-// var record *repo.URLRecord
+func TestURLRepositoryTestSuite(t *testing.T) {
+	suite.Run(t, new(URLRepositoryTestSuite))
+}
 
-// func setup() {
-// 	db = database.New("mongodb://localhost:27017/shorturl_test")
-// 	urlRepo = repo.NewURLRepository(db)
+func (suite *URLRepositoryTestSuite) SetupTest() {
+	suite.db = database.New("mongodb://localhost:27017/shorturl_test")
+	suite.urlRepo = repo.NewURLRepository(suite.db)
 
-// 	record = &repo.URLRecord{
-// 		"http://www.example.com",
-// 		"shrt",
-// 		time.Now(),
-// 	}
-// }
+	suite.record = &repo.URLRecord{
+		"http://www.example.com",
+		"shrt",
+		time.Now(),
+	}
+}
 
-// func tearDown() {
-// 	db.Instance().
-// 		C("urls").
-// 		RemoveAll(bson.M{})
+func (suite *URLRepositoryTestSuite) TearDownTest() {
 
-// 	defer db.Close()
-// }
+	suite.db.Instance().
+		C("urls").
+		RemoveAll(bson.M{})
 
-// func TestSaveRecordSucccessful(t *testing.T) {
+	defer suite.db.Close()
 
-// 	if _, err := urlRepo.SaveRecord(record); err != nil {
-// 		t.Errorf("Expected: save record. Got: %s", err)
-// 	}
+}
 
-// }
+func (suite *URLRepositoryTestSuite) TestSaveRecordSucccessful() {
 
-// func TestDuplicateRecordFails(t *testing.T) {
+	_, err := suite.urlRepo.SaveRecord(suite.record)
 
-// 	urlRepo.SaveRecord(record)
+	assert.Nil(suite.T(), err, "Expected: save record. Got: %s", err)
+}
 
-// 	if _, err := urlRepo.SaveRecord(record); !mgo.IsDup(err) {
-// 		t.Errorf("Expected: duplication error. Got: %s", err)
-// 	}
-// }
+func (suite *URLRepositoryTestSuite) TestDuplicateRecordFails() {
 
-// func TestFindExistingShortURL(t *testing.T) {
+	suite.urlRepo.SaveRecord(suite.record)
+	_, err := suite.urlRepo.SaveRecord(suite.record)
 
-// 	if result, err := urlRepo.ShortURL(record.LongUrl); result == nil || result.ShortId != record.ShortId {
-// 		t.Errorf("Expected Matching ShortId '%s'. Got: '%v' (error: '%s')", record.ShortId, result, err)
-// 	}
+	assert.True(suite.T(), mgo.IsDup(err), "Expected: duplication error. Got: %s", err)
+}
 
-// }
+func (suite *URLRepositoryTestSuite) TestFindExistingShortURL() {
+	_, err := suite.urlRepo.SaveRecord(suite.record)
+	if err != nil {
+		panic(err)
+	}
 
-// func TestFindAbsentShortURL(t *testing.T) {
+	result, err := suite.urlRepo.ShortURL(suite.record.LongUrl)
+	expectation := result != nil && result.ShortId == suite.record.ShortId
+	assert.True(suite.T(), expectation, "Expected Matching ShortId '%s'. Got: '%v' (error: '%s')", suite.record.ShortId, result, err)
+}
 
-// 	if result, err := urlRepo.ShortURL("http://www.nil.com"); err == nil {
-// 		t.Errorf("Expected err when shortId not found. Got: nil. (record: %v)", result)
-// 	}
+func (suite *URLRepositoryTestSuite) TestFindAbsentShortURL() {
 
-// }
+	result, err := suite.urlRepo.ShortURL("http://www.nil.com")
+	assert.NotNil(suite.T(), err, "Expected err when shortId not found. Got: nil. (record: %v)", result)
+}
 
-// func TestFindExistingLongURL(t *testing.T) {
+func (suite *URLRepositoryTestSuite) TestFindExistingLongURL() {
+	_, err := suite.urlRepo.SaveRecord(suite.record)
+	if err != nil {
+		panic(err)
+	}
 
-// 	if result, err := urlRepo.LongURL(record.ShortId); result == nil || result.LongUrl != record.LongUrl {
-// 		t.Errorf("Expected Matching LongUrl '%s'. Got: '%v' (error: '%s')", record.LongUrl, result, err)
-// 	}
+	result, err := suite.urlRepo.LongURL(suite.record.ShortId)
+	expectation := result != nil && result.LongUrl == suite.record.LongUrl
 
-// }
+	assert.True(suite.T(), expectation, "Expected Matching LongUrl '%s'. Got: '%v' (error: '%s')", suite.record.LongUrl, result, err)
 
-// func TestFindAbsentLongURL(t *testing.T) {
+}
 
-// 	if result, err := urlRepo.LongURL("nil"); err == nil {
-// 		t.Errorf("Expected err when longUrl not found. Got: nil. (record: %v)", result)
-// 	}
+func (suite *URLRepositoryTestSuite) TestFindAbsentLongURL() {
 
-// }
+	result, err := suite.urlRepo.LongURL("nil")
+	assert.NotNil(suite.T(), err, "Expected err when longUrl not found. Got: nil. (record: %v)", result)
+
+}

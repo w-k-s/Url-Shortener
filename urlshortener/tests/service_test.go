@@ -2,6 +2,8 @@ package tests
 
 import (
 	_ "fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	database "github.com/w-k-s/short-url/db"
 	"github.com/w-k-s/short-url/error"
 	u "github.com/w-k-s/short-url/urlshortener"
@@ -28,102 +30,123 @@ func (m MockShortIDGenerator) Generate(d u.Deviation) string {
 
 const SAVED_SHORT_ID = "shrt"
 const SAVED_LONG_URL = "http://www.example.com"
+const SAVED_SHORT_URL = "http://small.ml/" + SAVED_SHORT_ID
 
-var db *database.Db
-var urlRepo *u.URLRepository
-var record *u.URLRecord
-var generator *MockShortIDGenerator
-var service *u.Service
-
-func TestMain(m *testing.M) {
-	setup()
-	retCode := m.Run()
-	tearDown()
-	os.Exit(retCode)
+type ServiceSuite struct {
+	suite.Suite
+	db        *database.Db
+	urlRepo   *u.URLRepository
+	record    *u.URLRecord
+	generator *MockShortIDGenerator
+	service   *u.Service
 }
 
-func setup() {
-	db = database.New("mongodb://localhost:27017/shorturl_test")
-	urlRepo = u.NewURLRepository(db)
+func (suite *ServiceSuite) SetupTest() {
+	suite.db = database.New("mongodb://localhost:27017/shorturl_test")
+	suite.urlRepo = u.NewURLRepository(suite.db)
 
-	record = &u.URLRecord{
+	suite.record = &u.URLRecord{
 		SAVED_LONG_URL,
 		SAVED_SHORT_ID,
 		time.Now(),
 	}
 
-	db.Instance().
+	suite.db.Instance().
 		C("urls").
 		RemoveAll(bson.M{})
 
-	_, err := urlRepo.SaveRecord(record)
+	_, err := suite.urlRepo.SaveRecord(suite.record)
 	if err != nil {
 		panic(err)
 	}
 
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-	generator = &MockShortIDGenerator{}
+	suite.generator = &MockShortIDGenerator{}
 
-	service = u.NewService(urlRepo, logger, generator)
+	suite.service = u.NewService(suite.urlRepo, logger, suite.generator)
 }
 
-func tearDown() {
-	defer db.Close()
+func (suite *ServiceSuite) TearDownTest() {
+	defer suite.db.Close()
 }
 
-func TestShortUrlReturnedWhenRecordExists(t *testing.T) {
+func TestServiceSuite(t *testing.T) {
+	suite.Run(t, new(ServiceSuite))
+}
+
+func (suite *ServiceSuite) TestShortUrlReturnedWhenRecordExists() {
 
 	hostUrl, _ := url.Parse("http://www.small.ml")
 	testUrl, _ := url.Parse(SAVED_LONG_URL)
-	shortUrl, _ := service.ShortenUrl(hostUrl, testUrl)
+	shortUrl, _ := suite.service.ShortenUrl(hostUrl, testUrl)
 	expectation := "http://www.small.ml/" + SAVED_SHORT_ID
 
-	if shortUrl.String() != expectation {
-		t.Errorf("ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, shortUrl.String())
-	}
-
+	assert.Equal(suite.T(), shortUrl.String(), expectation, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, shortUrl.String())
 }
 
-func TestShortUrlCreatedWhenRecordDoesNotExist(t *testing.T) {
+func (suite *ServiceSuite) TestShortUrlCreatedWhenRecordDoesNotExist() {
 
 	hostUrl, _ := url.Parse("http://www.small.ml")
 	testUrl, _ := url.Parse("http://www.1.com")
-	generator.ShortId = "alpha"
-	shortUrl, _ := service.ShortenUrl(hostUrl, testUrl)
-	expectation := "http://www.small.ml/" + generator.ShortId
+	suite.generator.ShortId = "alpha"
+	shortUrl, _ := suite.service.ShortenUrl(hostUrl, testUrl)
+	expectation := "http://www.small.ml/" + suite.generator.ShortId
 
-	if shortUrl.String() != expectation {
-		t.Errorf("ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, shortUrl.String())
-	}
-
+	assert.Equal(suite.T(), shortUrl.String(), expectation, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, shortUrl.String())
 }
 
-func TestShortUrlErrorWhenShortIDNotUnique(t *testing.T) {
+func (suite *ServiceSuite) TestShortUrlErrorWhenShortIDNotUnique() {
 
 	hostUrl, _ := url.Parse("http://www.small.ml")
 	testUrl, _ := url.Parse("http://www.2.com")
-	generator.ShortId = SAVED_SHORT_ID
-	_, err := service.ShortenUrl(hostUrl, testUrl)
+	suite.generator.ShortId = SAVED_SHORT_ID
+	_, err := suite.service.ShortenUrl(hostUrl, testUrl)
 	expectation := error.Code(u.ShortenURLFailedToSave)
 
-	if err == nil || err.Code() != expectation {
-		t.Errorf("ShortenURL wrong error code. Expected '%d'. Got: %d", expectation, err)
-	}
+	assert.True(suite.T(), err != nil && err.Code() == expectation, "ShortenURL wrong error code. Expected '%d'. Got: %d", expectation, err)
+}
+
+func (suite *ServiceSuite) TestGetLongURLErrorWhenShortURLHasNoPath() {
+
+	testUrl, _ := url.Parse("http://www.small.ml")
+	_, err := suite.service.GetLongUrl(testUrl)
+	expectation := error.Code(u.RetrieveFullURLValidation)
+
+	assert.True(suite.T(), err != nil && err.Code() == expectation, "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, err)
+}
+
+func (suite *ServiceSuite) TestGetLongURLErrorWhenRecordDoesNotExist() {
+
+	testUrl, _ := url.Parse("http://www.small.ml/nil")
+	_, err := suite.service.GetLongUrl(testUrl)
+	expectation := error.Code(u.RetrieveFullURLNotFound)
+
+	assert.True(suite.T(), err != nil && err.Code() == expectation, "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, err)
 
 }
 
-// func TestGetLongURLErrorWhenShortURLHasNoPath(t *testing.T){
+func (suite *ServiceSuite) TestGetLongURLWhenRecordExists() {
 
-// }
+	testUrl, _ := url.Parse(SAVED_SHORT_URL)
+	url, _ := suite.service.GetLongUrl(testUrl)
 
-// func TestGetLongURLErrorWhenRecordDoesNotExist(t *testing.T){
+	assert.Equal(suite.T(), url.String(), SAVED_LONG_URL, "GetLongURL returned wrong original url. Expected %s, Got: %s", SAVED_LONG_URL, url.String())
+}
 
-// }
+func (suite *ServiceSuite) estGetLongURLErrorWhenRecordExistsButInvalidURL() {
 
-// func TestGetLongURLWhenRecordExists(t *testing.T){
+	record := &u.URLRecord{
+		"",
+		"wrong",
+		time.Now(),
+	}
 
-// }
+	testUrl, _ := url.Parse("http://small.ml/wrong")
+	_, err := suite.urlRepo.SaveRecord(record)
+	if err != nil {
+		panic(err)
+	}
 
-// func TestGetLongURLErrorWhenRecordExistsButInvalidURL(t *testing.T){
-
-// }
+	_, err2 := suite.service.GetLongUrl(testUrl)
+	assert.Equal(suite.T(), err2.Code(), u.RetrieveFullURLParsing, "GetLongURL wrong error code. Expected '%d'. Got: %d", u.RetrieveFullURLParsing, err2.Code())
+}
