@@ -1,3 +1,6 @@
+include .env
+export $(shell sed 's/=.*//' .env)
+
 BUILD_NAME = short-url
 
 clean:
@@ -9,14 +12,17 @@ fmt:
 dep:
 	godep save
 
-run: dep fmt
+run: fmt dep 
 	go run *.go
 
 test: fmt
 	#Ignore the vendor directory
 	go test  `go list ./... | grep -v vendor`
 
-docker-run-local: clean dep fmt
+docker-build: fmt clean dep test
+	docker build -t $(BUILD_NAME):$(TAG) 
+
+docker-start-local: fmt clean dep 
 	go build 
 	docker-compose -f docker-compose.local.yml build
 	docker-compose -f docker-compose.local.yml up -d
@@ -25,6 +31,8 @@ docker-end-local:
 	docker-compose -f docker-compose.local.yml stop
 	docker-compose -f docker-compose.local.yml rm
 
-docker-hub-publish: clean dep fmt test
-	docker-compose -f docker-compose.production.yml build
+docker-start-prod:
+	docker-compose -f docker-compose.production.yml up -d
+
+docker-hub-publish: docker-build
 	docker-compose -f docker-compose.production.yml push short-url
