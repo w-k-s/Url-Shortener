@@ -16,7 +16,7 @@ test: fmt
 	#Ignore the vendor directory
 	go test  `go list ./... | grep -v vendor`
 
-docker-run-local: clean dep fmt
+docker-start-local: clean dep fmt
 	go build 
 	docker-compose -f docker-compose.local.yml build
 	docker-compose -f docker-compose.local.yml up -d
@@ -24,6 +24,9 @@ docker-run-local: clean dep fmt
 docker-end-local:
 	docker-compose -f docker-compose.local.yml stop
 	docker-compose -f docker-compose.local.yml rm
+
+docker-start-prod:
+	docker-compose -f docker-compose.production.yml up -d
 
 docker-hub-publish: clean dep fmt test
 	docker-compose -f docker-compose.production.yml build
