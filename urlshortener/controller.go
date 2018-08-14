@@ -3,7 +3,6 @@ package urlshortener
 import (
 	"encoding/json"
 	"fmt"
-	app "github.com/w-k-s/short-url/app"
 	err "github.com/w-k-s/short-url/error"
 	"net/http"
 	"net/url"
@@ -13,13 +12,9 @@ type Controller struct {
 	service *Service
 }
 
-func NewController(app *app.App) *Controller {
+func NewController(service *Service) *Controller {
 	return &Controller{
-		NewService(
-			NewURLRepository(app.Db),
-			app.Logger,
-			DefaultShortIDGenerator{},
-		),
+		service,
 	}
 }
 
@@ -178,6 +173,8 @@ func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
 func (c *Controller) RedirectToLongUrl(w http.ResponseWriter, req *http.Request) {
 
 	longUrl, err := c.service.GetLongUrl(req.URL)
+
+	fmt.Printf("redirecting to %s\n", longUrl)
 
 	if err != nil {
 		SendError(w, err)

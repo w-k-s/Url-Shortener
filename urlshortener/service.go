@@ -44,7 +44,7 @@ func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.E
 			CreateTime: time.Now(),
 		})
 
-		s.logger.Printf("longUrl '%s' (Attempt %d): Using shortId '%s'. Error: %s", longUrl, try, shortId, err)
+		s.logger.Printf("longUrl '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %s\n\n", longUrl, try, shortId, err)
 		inserted = err == nil
 	}
 

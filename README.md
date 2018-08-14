@@ -30,7 +30,7 @@ Visit the website: [small.ml](https://small.ml)
 - [-] Unit Tests using testify test suite
 - [x] Set up CircleCI
 - [x] Use swagger.io on the home screen
-- [ ] Consistent Naming: Url -> URL. Db -> DB. FullURL -> OriginalURL.
+- [ ] Consistent Naming: Url -> URL. Db -> DB. FullURL -> OriginalURL. ShortId -> ShortID
 
 Useful Resources
 

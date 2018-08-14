@@ -1,5 +1,7 @@
 package error
 
+import "encoding/json"
+
 type Error struct {
 	code    Code              `json:"code"`
 	domain  string            `json:"domain"`
@@ -30,4 +32,9 @@ func NewError(code Code, domain string, message string, fields map[string]string
 		message: message,
 		fields:  fields,
 	}
+}
+
+func (e Error) String() string {
+	bytes, _ := json.Marshal(&e)
+	return string(bytes)
 }

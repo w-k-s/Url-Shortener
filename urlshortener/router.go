@@ -7,7 +7,11 @@ import (
 
 func Configure(app *a.App, r *mux.Router) {
 
-	c := NewController(app)
+	c := NewController(NewService(
+		NewURLRepository(app.Db),
+		app.Logger,
+		DefaultShortIDGenerator{},
+	))
 
 	r.HandleFunc("/{shortUrl}", c.RedirectToLongUrl).
 		Methods("GET")

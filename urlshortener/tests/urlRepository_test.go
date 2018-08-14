@@ -1,7 +1,6 @@
 package tests
 
 import (
-	_ "fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	database "github.com/w-k-s/short-url/db"

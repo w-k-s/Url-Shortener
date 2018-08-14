@@ -1,13 +1,11 @@
 package tests
 
 import (
-	_ "fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	database "github.com/w-k-s/short-url/db"
 	"github.com/w-k-s/short-url/error"
 	u "github.com/w-k-s/short-url/urlshortener"
-	_ "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/url"
