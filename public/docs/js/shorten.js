@@ -1,11 +1,13 @@
-function ShortenController(input,output,submitButton,copyButton){
+function ShortenController(input,output,error,submitButton,copyButton){
 	this.input = input;
 	this.output = output;
+	this.error = error;
 	this.submitButton = submitButton;
 	this.copyButton = copyButton;
 
 	this.input.value = '';
 	this.output.value = '';
+	this.error.style.display = 'none';
 	this.output.disabled = true;
 	this.copyButton.disabled = true;
 	this.submitButton.disabled = true;
@@ -15,6 +17,7 @@ function ShortenController(input,output,submitButton,copyButton){
 	  that.output.value = '';
 	  that.output.disabled = true;
 	  that.copyButton.disabled = true;
+	  that.error.style.display = 'none';
 	  that.submitButton.disabled = e.target.value.length === 0;
 	});
 }
@@ -29,14 +32,23 @@ ShortenController.prototype.submit = function(){
 			longUrl: that.input.value,
 		})
 	})
-	.then(res => res.json())
-	.then(json => {
-		that.output.value = json.shortUrl;
+	.then(async res => {
+		let json = await res.json();
+		return {res, json};
+	})
+	.then(resp => {
+		if(!resp.res.ok){
+			throw resp.json;
+		}
+
+		that.output.value = resp.json.shortUrl;
 		that.copyButton.disabled = false;
 		that.output.disabled = false;
 	})
 	.catch(function(err){
-		console.log(JSON.stringify(err));
+		that.input.value = '';
+		that.error.style.display = 'block';
+		that.error.children[0].innerHTML  = err.message;
 	});
 };
 

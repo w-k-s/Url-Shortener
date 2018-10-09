@@ -9,6 +9,7 @@ body {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  font-family: 'Roboto',sans-serif;
 }
 
 header {
@@ -28,11 +29,13 @@ header h1 {
 }
 
 .smallify {
-  background: red;
+  color: #ececec;
+  background: #2e2e2e;
 }
 
 .fullify {
-  background: green;
+  color: #2e2e2e;
+  background: #ececec;
 }
 
 .tab-container {
@@ -43,6 +46,9 @@ header h1 {
 
 .tab {
   margin: 0 1.5em 0 1.5em;
+  color: #b22222;
+  font-variant: small-caps;
+  font-weight: bold;
 }
 
 .converter {
@@ -72,10 +78,30 @@ header h1 {
   width: 10em;
 }
 
+#inputLongUrlError{
+  display: none;
+}
+
+#inputShortUrlError{
+  display: none;
+}
+
+.error{
+  background: red;
+  padding: 5px 20px 5px 20px;
+  border-radius: 5%;
+  color: white;
+  max-width: 100%;
+  overflow: auto;
+  display: inline-block;
+  font-family: 'Roboto' normal 10px;
+}
+
 .curl-sample {
   display: flex;
   width: 90%;
   margin: 0 auto;
+  font-family: monospace, serif;
   max-width: 90%;
   background: black;
   color: #00F900;

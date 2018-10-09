@@ -5,13 +5,15 @@ function init(){
 	shortenController = new ShortenController(
 		document.getElementById("inputLongUrl"),
 		document.getElementById("outputShortUrl"),
+		document.getElementById("inputLongUrlError"),
 		document.getElementById("btnSubmitLongUrl"),
 		document.getElementById("btnCopy")
 	)
 
-	getOriginalViewModel = new GetOriginalController(
+	getOriginalController = new GetOriginalController(
 		document.getElementById("inputShortUrl"),
 		document.getElementById("outputOriginalUrl"),
+		document.getElementById("inputShortUrlError"),
 		document.getElementById("btnSubmitShortUrl"),
 		document.getElementById("btnVisit")
 	)

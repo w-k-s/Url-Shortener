@@ -1,6 +1,7 @@
-function GetOriginalController(input,output,submitButton,goButton){
+function GetOriginalController(input,output,error,submitButton,goButton){
 	this.input = input;
 	this.output = output;
+	this.error = error;
 	this.submitButton = submitButton;
 	this.goButton = goButton;
 
@@ -10,28 +11,35 @@ function GetOriginalController(input,output,submitButton,goButton){
 	this.goButton.disabled = true;
 	this.submitButton.disabled = true;
 
-	var that = this;
-	this.input.addEventListener('input',function(e){
-	  that.output.value = '';
-	  that.output.disabled = true;
-	  that.goButton.disabled = true;
-	  that.submitButton.disabled = e.target.value.length === 0;
+	this.input.addEventListener('input',(e)=>{
+	  this.output.value = '';
+	  this.output.disabled = true;
+	  this.goButton.disabled = true;
+	  this.error.style.display = 'none';
+	  this.submitButton.disabled = e.target.value.length === 0;
 	});
 }
 
 GetOriginalController.prototype.submit = function(){
-	var that = this;
-	fetch(`https://small.ml/urlshortener/v1/url?shortUrl=${that.input.value}`,{
+	fetch(`https://small.ml/urlshortener/v1/url?shortUrl=${this.input.value}`,{
 		method: "GET"
 	})
-	.then(res => res.json())
-	.then(json => {
-		that.output.value = json.longUrl;
-		that.goButton.disabled = false;
-		that.output.disabled = false;
+	.then(async res => {
+		let json = await res.json();
+		return {res, json};
 	})
-	.catch(function(err){
-		console.log(JSON.stringify(err));
+	.then(resp => {
+		if(!resp.res.ok){
+			throw resp.json;
+		}
+		this.output.value = resp.json.longUrl;
+		this.goButton.disabled = false;
+		this.output.disabled = false;
+	})
+	.catch((err)=>{
+		this.input.value = '';
+		this.error.style.display = 'block';
+		this.error.children[0].innerHTML  = err.message;
 	});
 };
 

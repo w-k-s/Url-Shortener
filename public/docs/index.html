@@ -4,92 +4,8 @@
   <head>
     <meta charset="UTF-8">
     <title>small.ml API</title>
-    <style>
-      *{
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
-      body{
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-      }
-
-      header{
-        display: flex;
-        flex-direction: row;
-        background: black;
-        color: white;
-        padding: 1.5em;
-      }
-
-      .octicon{
-        fill: white;
-      }
-
-      header h1{
-        margin: 0 auto;
-      }
-
-      .smallify{
-        background: red;
-      }
-
-      .fullify{
-        background: green;
-      }
-
-      .tab-container{
-        display: flex;
-        justify-content: center;
-        padding: 1.5em
-      }
-
-      .tab{
-        margin: 0 1.5em 0 1.5em;
-      }
-
-      .converter{
-        display: flex;
-        flex-direction: column;
-        text-align: center;
-        padding: 1.5em;
-        justify-content: center;
-      }
-
-      .converter-form{
-        margin: 1.5em;
-      }
-
-      .row{
-        display: flex;
-        justify-content: center;
-        margin: 1.5em;
-      }
-
-      .row input[type="url"], input[type="text"]{
-        width: 20em;
-        margin-right: 1.5em;
-      }
-
-      .row input[type="submit"]{
-        width: 10em;
-      }
-
-      .curl-sample{
-        display: flex;
-        width: 90%;
-        margin: 0 auto;
-        max-width: 90%;
-        background: black;
-        color: #00F900;
-        text-align: left;
-        padding: 10px;
-      }
-    </style>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <link rel="stylesheet" href="css/index.css"></link>
     <script src="js/getoriginal.js"></script>
     <script src="js/shorten.js"></script>
     <script src="js/index.js"></script>
@@ -113,6 +29,9 @@
               <input id="inputLongUrl" type="url" placeholder="Enter a valid URL">
               <input id="btnSubmitLongUrl" type="submit" onclick="shorten()" value="Shorten"/>
             </div>
+            <div id="inputLongUrlError">
+              <span class="error"> There was an error</span>
+            </div>
             <div class="row">
               <input id="outputShortUrl" type="text">
               <input id="btnCopy" type="submit" onclick="copyShortUrl()" value="Copy"/>
@@ -130,8 +49,11 @@
               <input id="inputShortUrl" type="url" placeholder="Enter a small.ml URL">
               <input id="btnSubmitShortUrl" type="submit" onclick="getOriginal()" value="Get Orginal"/>
             </div>
+            <div id="inputShortUrlError">
+              <span class="error"> There was an error</span>
+            </div>
             <div class="row">
-              <input id="outputOriginalUrl" type="text" disabled>
+              <input id="outputOriginalUrl" type="text">
               <input id="btnVisit" type="submit" onclick="visitOriginal()" value="Go" onClick="getOriginal()"/>
             </div>
           </div>
