@@ -76,7 +76,7 @@ func (suite *ServiceSuite) TestShortUrlReturnedWhenRecordExists() {
 
 	hostUrl, _ := url.Parse("http://www.small.ml")
 	testUrl, _ := url.Parse(SAVED_LONG_URL)
-	shortUrl, _ := suite.service.ShortenUrl(hostUrl, testUrl)
+	shortUrl, _ := suite.service.ShortenURL(hostUrl, testUrl)
 	expectation := "http://www.small.ml/" + SAVED_SHORT_ID
 
 	assert.Equal(suite.T(), shortUrl.String(), expectation, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, shortUrl.String())
@@ -87,7 +87,7 @@ func (suite *ServiceSuite) TestShortUrlCreatedWhenRecordDoesNotExist() {
 	hostUrl, _ := url.Parse("http://www.small.ml")
 	testUrl, _ := url.Parse("http://www.1.com")
 	suite.generator.ShortId = "alpha"
-	shortUrl, _ := suite.service.ShortenUrl(hostUrl, testUrl)
+	shortUrl, _ := suite.service.ShortenURL(hostUrl, testUrl)
 	expectation := "http://www.small.ml/" + suite.generator.ShortId
 
 	assert.Equal(suite.T(), shortUrl.String(), expectation, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, shortUrl.String())
@@ -98,7 +98,7 @@ func (suite *ServiceSuite) TestShortUrlErrorWhenShortIDNotUnique() {
 	hostUrl, _ := url.Parse("http://www.small.ml")
 	testUrl, _ := url.Parse("http://www.2.com")
 	suite.generator.ShortId = SAVED_SHORT_ID
-	_, err := suite.service.ShortenUrl(hostUrl, testUrl)
+	_, err := suite.service.ShortenURL(hostUrl, testUrl)
 	expectation := error.Code(u.ShortenURLFailedToSave)
 
 	assert.True(suite.T(), err != nil && err.Code() == expectation, "ShortenURL wrong error code. Expected '%d'. Got: %d", expectation, err)
@@ -107,7 +107,7 @@ func (suite *ServiceSuite) TestShortUrlErrorWhenShortIDNotUnique() {
 func (suite *ServiceSuite) TestGetLongURLErrorWhenShortURLHasNoPath() {
 
 	testUrl, _ := url.Parse("http://www.small.ml")
-	_, err := suite.service.GetLongUrl(testUrl)
+	_, err := suite.service.GetLongURL(testUrl)
 	expectation := error.Code(u.RetrieveFullURLValidation)
 
 	assert.True(suite.T(), err != nil && err.Code() == expectation, "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, err)
@@ -116,7 +116,7 @@ func (suite *ServiceSuite) TestGetLongURLErrorWhenShortURLHasNoPath() {
 func (suite *ServiceSuite) TestGetLongURLErrorWhenRecordDoesNotExist() {
 
 	testUrl, _ := url.Parse("http://www.small.ml/nil")
-	_, err := suite.service.GetLongUrl(testUrl)
+	_, err := suite.service.GetLongURL(testUrl)
 	expectation := error.Code(u.RetrieveFullURLNotFound)
 
 	assert.True(suite.T(), err != nil && err.Code() == expectation, "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, err)
@@ -126,7 +126,7 @@ func (suite *ServiceSuite) TestGetLongURLErrorWhenRecordDoesNotExist() {
 func (suite *ServiceSuite) TestGetLongURLWhenRecordExists() {
 
 	testUrl, _ := url.Parse(SAVED_SHORT_URL)
-	url, _ := suite.service.GetLongUrl(testUrl)
+	url, _ := suite.service.GetLongURL(testUrl)
 
 	assert.Equal(suite.T(), url.String(), SAVED_LONG_URL, "GetLongURL returned wrong original url. Expected %s, Got: %s", SAVED_LONG_URL, url.String())
 }
@@ -145,6 +145,6 @@ func (suite *ServiceSuite) estGetLongURLErrorWhenRecordExistsButInvalidURL() {
 		panic(err)
 	}
 
-	_, err2 := suite.service.GetLongUrl(testUrl)
+	_, err2 := suite.service.GetLongURL(testUrl)
 	assert.Equal(suite.T(), err2.Code(), u.RetrieveFullURLParsing, "GetLongURL wrong error code. Expected '%d'. Got: %d", u.RetrieveFullURLParsing, err2.Code())
 }

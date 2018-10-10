@@ -11,10 +11,10 @@ import (
 type Service struct {
 	repo      *URLRepository
 	logger    *log.Logger
-	generator ShortIDGenerator
+	generator ShortIdGenerator
 }
 
-func NewService(repo *URLRepository, logger *log.Logger, generator ShortIDGenerator) *Service {
+func NewService(repo *URLRepository, logger *log.Logger, generator ShortIdGenerator) *Service {
 	return &Service{
 		repo,
 		logger,
@@ -22,13 +22,13 @@ func NewService(repo *URLRepository, logger *log.Logger, generator ShortIDGenera
 	}
 }
 
-func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.Err) {
+func (s *Service) ShortenURL(reqURL *url.URL, longURL *url.URL) (*url.URL, err.Err) {
 
-	existingRecord, _ := s.repo.ShortURL(longUrl.String())
+	existingRecord, _ := s.repo.ShortURL(longURL.String())
 
 	if existingRecord != nil {
-		s.logger.Printf("Record found. Long Url: %s, shortUrl: %s", longUrl, existingRecord.ShortId)
-		return buildShortenedUrl(reqUrl, existingRecord), nil
+		s.logger.Printf("Record found. Long Url: %s, shortURL: %s", longURL, existingRecord.ShortId)
+		return buildShortenedURL(reqURL, existingRecord), nil
 	}
 
 	deviations := []Deviation{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
@@ -39,12 +39,12 @@ func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.E
 	for try := 0; !inserted && try < len(deviations); try++ {
 		shortId := s.generator.Generate(deviations[try])
 		newRecord, err = s.repo.SaveRecord(&URLRecord{
-			LongUrl:    longUrl.String(),
+			LongURL:    longURL.String(),
 			ShortId:    shortId,
 			CreateTime: time.Now(),
 		})
 
-		s.logger.Printf("longUrl '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %s\n\n", longUrl, try, shortId, err)
+		s.logger.Printf("longURL '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %s\n\n", longURL, try, shortId, err)
 		inserted = err == nil
 	}
 
@@ -56,25 +56,25 @@ func (s *Service) ShortenUrl(reqUrl *url.URL, longUrl *url.URL) (*url.URL, err.E
 		)
 	}
 
-	return buildShortenedUrl(reqUrl, newRecord), nil
+	return buildShortenedURL(reqURL, newRecord), nil
 }
 
-func buildShortenedUrl(reqUrl *url.URL, urlRecord *URLRecord) *url.URL {
+func buildShortenedURL(reqURL *url.URL, urlRecord *URLRecord) *url.URL {
 	return &url.URL{
-		Scheme: reqUrl.Scheme,
-		Host:   reqUrl.Host,
+		Scheme: reqURL.Scheme,
+		Host:   reqURL.Host,
 		Path:   urlRecord.ShortId,
 	}
 }
 
-func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, err.Err) {
+func (s *Service) GetLongURL(shortURL *url.URL) (*url.URL, err.Err) {
 
 	var shortId string
-	path := shortUrl.Path
+	path := shortURL.Path
 	if len(path) == 0 {
 		return nil, NewError(
 			RetrieveFullURLValidation,
-			fmt.Sprintf("The URL '%s' does not have a path.", shortUrl),
+			fmt.Sprintf("The URL '%s' does not have a path.", shortURL),
 			nil,
 		)
 	}
@@ -92,14 +92,14 @@ func (s *Service) GetLongUrl(shortUrl *url.URL) (*url.URL, err.Err) {
 		)
 	}
 
-	longUrl, err := url.Parse(record.LongUrl)
+	longURL, err := url.Parse(record.LongURL)
 	if err != nil {
 		return nil, NewError(
 			RetrieveFullURLParsing,
-			fmt.Sprintf("Failed to parse %s", record.LongUrl),
+			fmt.Sprintf("Failed to parse %s", record.LongURL),
 			map[string]string{"error": err.Error()},
 		)
 	}
 
-	return longUrl, nil
+	return longURL, nil
 }

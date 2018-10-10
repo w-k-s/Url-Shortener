@@ -27,12 +27,13 @@ Visit the website: [small.ml](https://small.ml)
 4. Refactor 
 - [x] Move database logic to repository
 - [x] Improve error responses. Go's error messages are short and useless.
-- [-] Unit Tests using testify test suite
+- [x] Unit Tests using testify test suite
 - [x] Set up CircleCI
 - [x] Use swagger.io on the home screen
-- [ ] Consistent Naming: Url -> URL. Db -> DB. FullURL -> OriginalURL. ShortId -> ShortID
+- [x] Consistent Naming: Url -> URL. Db -> DB. FullURL -> OriginalURL. ShortId -> ShortID
 - [x] Remove swagger (slow and ugly)
 - [ ] Minify JS and CSS
+- [ ] Add loadbalancer, cache
 
 Useful Resources
 

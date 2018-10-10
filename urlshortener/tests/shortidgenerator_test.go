@@ -11,7 +11,7 @@ func TestGenerator(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 
-		gen := u.DefaultShortIDGenerator{}
+		gen := u.DefaultShortIdGenerator{}
 		shortIds := []string{
 			gen.Generate(u.VERY_SHORT),
 			gen.Generate(u.SHORT),

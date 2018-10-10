@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-const collNameUrls = "urls"
+const collNameURLs = "urls"
 
 const fieldShortId = "shortId"
-const fieldLongUrl = "longUrl"
+const fieldLongURL = "longUrl"
 
 type URLRecord struct {
-	LongUrl    string    `bson:"longUrl"`
+	LongURL    string    `bson:"longUrl"`
 	ShortId    string    `bson:"shortId"`
 	CreateTime time.Time `bson:"createTime"`
 }
@@ -29,7 +29,7 @@ func NewURLRepository(db *database.Db) *URLRepository {
 }
 
 func (ur *URLRepository) urlCollection() *mgo.Collection {
-	return ur.db.Instance().C(collNameUrls)
+	return ur.db.Instance().C(collNameURLs)
 }
 
 func (ur *URLRepository) updateIndexes() error {
@@ -73,10 +73,10 @@ func (ur *URLRepository) LongURL(shortId string) (*URLRecord, error) {
 	return &record, nil
 }
 
-func (ur *URLRepository) ShortURL(longUrl string) (*URLRecord, error) {
+func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
 	var record URLRecord
 	err := ur.urlCollection().
-		Find(bson.M{fieldLongUrl: longUrl}).
+		Find(bson.M{fieldLongURL: longURL}).
 		One(&record)
 
 	if err != nil {

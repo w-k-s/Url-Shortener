@@ -21,19 +21,19 @@ func NewController(service *Service) *Controller {
 //--URLResponse
 
 type urlResponse struct {
-	LongUrl  string `json:"longUrl"`
-	ShortUrl string `json:"shortUrl"`
+	LongURL  string `json:"longUrl"`
+	ShortURL string `json:"shortUrl"`
 }
 
 //--Shorten URL
 
-type shortenUrlRequest struct {
-	LongUrl string `json:"longUrl"`
+type shortenURLRequest struct {
+	LongURL string `json:"longUrl"`
 }
 
-func parseShortenUrlRequest(req *http.Request) (*url.URL, err.Err) {
+func parseShortenURLRequest(req *http.Request) (*url.URL, err.Err) {
 
-	var shortenReq shortenUrlRequest
+	var shortenReq shortenURLRequest
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&shortenReq)
 	if err != nil {
@@ -44,45 +44,45 @@ func parseShortenUrlRequest(req *http.Request) (*url.URL, err.Err) {
 		)
 	}
 
-	rawUrl, err := url.Parse(shortenReq.LongUrl)
+	rawURL, err := url.Parse(shortenReq.LongURL)
 	if err != nil {
 		return nil, NewError(
 			ShortenURLValidation,
-			fmt.Sprintf("'%s' is not a valid url", shortenReq.LongUrl),
+			fmt.Sprintf("'%s' is not a valid url", shortenReq.LongURL),
 			map[string]string{"error": err.Error()},
 		)
 	}
 
-	if !rawUrl.IsAbs() {
+	if !rawURL.IsAbs() {
 		return nil, NewError(
 			ShortenURLValidation,
-			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortenReq.LongUrl),
+			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortenReq.LongURL),
 			nil,
 		)
 	}
 
-	return rawUrl, nil
+	return rawURL, nil
 }
 
-func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
+func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
 
 	scheme := req.URL.Scheme
 	if len(scheme) == 0 {
 		scheme = "https"
 	}
 
-	reqUrl := &url.URL{
+	reqURL := &url.URL{
 		Scheme: scheme,
 		Host:   req.Host,
 	}
 
-	longUrl, err := parseShortenUrlRequest(req)
+	longURL, err := parseShortenURLRequest(req)
 	if err != nil {
 		SendError(w, err)
 		return
 	}
 
-	shortUrl, err := c.service.ShortenUrl(reqUrl, longUrl)
+	shortURL, err := c.service.ShortenURL(reqURL, longURL)
 	if err != nil {
 		SendError(w, err)
 		return
@@ -90,8 +90,8 @@ func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
 
 	encoder := json.NewEncoder(w)
 	_err_ := encoder.Encode(&urlResponse{
-		LongUrl:  longUrl.String(),
-		ShortUrl: shortUrl.String(),
+		LongURL:  longURL.String(),
+		ShortURL: shortURL.String(),
 	})
 
 	if _err_ != nil {
@@ -108,9 +108,9 @@ func (c *Controller) ShortenUrl(w http.ResponseWriter, req *http.Request) {
 
 func parseRetrieveFullURLRequest(req *http.Request) (*url.URL, err.Err) {
 
-	shortUrlReq := req.FormValue("shortUrl")
+	shortURLReq := req.FormValue("shortUrl")
 
-	if len(shortUrlReq) == 0 {
+	if len(shortURLReq) == 0 {
 		return nil, NewError(
 			RetrieveFullURLValidation,
 			"`shortUrl` is required",
@@ -118,35 +118,35 @@ func parseRetrieveFullURLRequest(req *http.Request) (*url.URL, err.Err) {
 		)
 	}
 
-	shortUrl, err := url.Parse(shortUrlReq)
+	shortURL, err := url.Parse(shortURLReq)
 	if err != nil {
 		return nil, NewError(
 			RetrieveFullURLValidation,
-			fmt.Sprintf("'%s' is not a valid url", shortUrl),
+			fmt.Sprintf("'%s' is not a valid url", shortURL),
 			map[string]string{"error": err.Error()},
 		)
 	}
 
-	if !shortUrl.IsAbs() {
+	if !shortURL.IsAbs() {
 		return nil, NewError(
 			RetrieveFullURLValidation,
-			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortUrl),
+			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortURL),
 			nil,
 		)
 	}
 
-	return shortUrl, nil
+	return shortURL, nil
 }
 
-func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
+func (c *Controller) GetLongURL(w http.ResponseWriter, req *http.Request) {
 
-	shortUrl, err := parseRetrieveFullURLRequest(req)
+	shortURL, err := parseRetrieveFullURLRequest(req)
 	if err != nil {
 		SendError(w, err)
 		return
 	}
 
-	longUrl, err := c.service.GetLongUrl(shortUrl)
+	longURL, err := c.service.GetLongURL(shortURL)
 	if err != nil {
 		SendError(w, err)
 		return
@@ -154,8 +154,8 @@ func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
 
 	encoder := json.NewEncoder(w)
 	_err_ := encoder.Encode(&urlResponse{
-		LongUrl:  longUrl.String(),
-		ShortUrl: shortUrl.String(),
+		LongURL:  longURL.String(),
+		ShortURL: shortURL.String(),
 	})
 
 	if _err_ != nil {
@@ -170,16 +170,16 @@ func (c *Controller) GetLongUrl(w http.ResponseWriter, req *http.Request) {
 
 //--Redirect
 
-func (c *Controller) RedirectToLongUrl(w http.ResponseWriter, req *http.Request) {
+func (c *Controller) RedirectToLongURL(w http.ResponseWriter, req *http.Request) {
 
-	longUrl, err := c.service.GetLongUrl(req.URL)
+	longURL, err := c.service.GetLongURL(req.URL)
 
-	fmt.Printf("redirecting to %s\n", longUrl)
+	fmt.Printf("redirecting to %s\n", longURL)
 
 	if err != nil {
 		SendError(w, err)
 		return
 	}
 
-	http.Redirect(w, req, longUrl.String(), http.StatusSeeOther)
+	http.Redirect(w, req, longURL.String(), http.StatusSeeOther)
 }

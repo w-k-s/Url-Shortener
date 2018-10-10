@@ -21,13 +21,13 @@ const SHORT Deviation = 10000          // bias
 const MEDIUM Deviation = 10000 / 4     // bias/4
 const VERY_LONG Deviation = 1
 
-type ShortIDGenerator interface {
+type ShortIdGenerator interface {
 	Generate(d Deviation) string
 }
 
-type DefaultShortIDGenerator struct{}
+type DefaultShortIdGenerator struct{}
 
-func (gen DefaultShortIDGenerator) Generate(d Deviation) string {
+func (gen DefaultShortIdGenerator) Generate(d Deviation) string {
 	biasedRandom := uint64(randBias(0, 1<<31-1, bias, float64(d)))
 	return basenconv.FormatBase62(biasedRandom)
 }

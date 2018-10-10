@@ -64,7 +64,7 @@ func (suite *URLRepositoryTestSuite) TestFindExistingShortURL() {
 		panic(err)
 	}
 
-	result, err := suite.urlRepo.ShortURL(suite.record.LongUrl)
+	result, err := suite.urlRepo.ShortURL(suite.record.LongURL)
 	expectation := result != nil && result.ShortId == suite.record.ShortId
 	assert.True(suite.T(), expectation, "Expected Matching ShortId '%s'. Got: '%v' (error: '%s')", suite.record.ShortId, result, err)
 }
@@ -82,9 +82,9 @@ func (suite *URLRepositoryTestSuite) TestFindExistingLongURL() {
 	}
 
 	result, err := suite.urlRepo.LongURL(suite.record.ShortId)
-	expectation := result != nil && result.LongUrl == suite.record.LongUrl
+	expectation := result != nil && result.LongURL == suite.record.LongURL
 
-	assert.True(suite.T(), expectation, "Expected Matching LongUrl '%s'. Got: '%v' (error: '%s')", suite.record.LongUrl, result, err)
+	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result, err)
 
 }
 

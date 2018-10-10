@@ -10,18 +10,18 @@ func Configure(app *a.App, r *mux.Router) {
 	c := NewController(NewService(
 		NewURLRepository(app.Db),
 		app.Logger,
-		DefaultShortIDGenerator{},
+		DefaultShortIdGenerator{},
 	))
 
-	r.HandleFunc("/{shortUrl}", c.RedirectToLongUrl).
+	r.HandleFunc("/{shortUrl}", c.RedirectToLongURL).
 		Methods("GET")
 
 	s := r.PathPrefix("/urlshortener/v1").
 		Subrouter()
 
-	s.HandleFunc("/url", c.ShortenUrl).
+	s.HandleFunc("/url", c.ShortenURL).
 		Methods("POST")
 
-	s.HandleFunc("/url", c.GetLongUrl).
+	s.HandleFunc("/url", c.GetLongURL).
 		Methods("GET")
 }
