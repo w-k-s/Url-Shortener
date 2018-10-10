@@ -20,12 +20,17 @@ header {
   padding: 1.5em;
 }
 
+.logo{
+  margin: auto 0;
+}
+
 .octicon {
   fill: white;
 }
 
-header h1 {
+header .title {
   margin: 0 auto;
+  text-align: center;
 }
 
 .smallify {
