@@ -1,7 +1,7 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
-BUILD_NAME = short-url
+BUILD_NAME = wkas/short-url
 
 clean:
 	rm -f $(BUILD_NAME)
@@ -20,7 +20,7 @@ test: fmt
 	go test  `go list ./... | grep -v vendor`
 
 docker-build: fmt clean dep test
-	docker build -t $(BUILD_NAME):$(TAG) 
+	docker build -t $(BUILD_NAME):$(TAG) .
 
 docker-start-local: fmt clean dep 
 	go build 
@@ -35,4 +35,4 @@ docker-start-prod:
 	docker-compose -f docker-compose.production.yml up -d
 
 docker-hub-publish: docker-build
-	docker-compose -f docker-compose.production.yml push short-url
+	docker push $(BUILD_NAME)
