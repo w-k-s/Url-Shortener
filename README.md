@@ -31,6 +31,8 @@ Visit the website: [small.ml](https://small.ml)
 - [x] Set up CircleCI
 - [x] Use swagger.io on the home screen
 - [ ] Consistent Naming: Url -> URL. Db -> DB. FullURL -> OriginalURL. ShortId -> ShortID
+- [x] Remove swagger (slow and ugly)
+- [ ] Minify JS and CSS
 
 Useful Resources
 

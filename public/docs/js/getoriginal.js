@@ -21,7 +21,7 @@ function GetOriginalController(input,output,error,submitButton,goButton){
 }
 
 GetOriginalController.prototype.submit = function(){
-	fetch(`https://small.ml/urlshortener/v1/url?shortUrl=${this.input.value}`,{
+	fetch(`/urlshortener/v1/url?shortUrl=${this.input.value}`,{
 		method: "GET"
 	})
 	.then(async res => {

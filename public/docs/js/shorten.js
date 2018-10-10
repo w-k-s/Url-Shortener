@@ -24,7 +24,7 @@ function ShortenController(input,output,error,submitButton,copyButton){
 
 ShortenController.prototype.submit = function(){
 	var that = this;
-	fetch('https://small.ml/urlshortener/v1/url',{
+	fetch('/urlshortener/v1/url',{
 		method: "POST",
 		mode: "cors",
 		credentials: "same-origin",

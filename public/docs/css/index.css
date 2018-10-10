@@ -71,11 +71,17 @@ header h1 {
 
 .row input[type="url"], input[type="text"] {
   width: 20em;
+  padding: 1.5em;
   margin-right: 1.5em;
+  font-size: 0.8em;
 }
 
-.row input[type="submit"] {
+.row input[type="submit"]{
   width: 10em;
+  background: #2c2c32;
+  color: white;
+  border: 1px solid black;
+  min-width: 10em;
 }
 
 #inputLongUrlError{
@@ -101,10 +107,12 @@ header h1 {
   display: flex;
   width: 90%;
   margin: 0 auto;
-  font-family: monospace, serif;
   max-width: 90%;
   background: black;
-  color: #00F900;
-  text-align: left;
   padding: 10px;
+  color: #00F900;
+  display: block;
+  font-family: monospace, serif;
+  text-align: left;
+  word-wrap: break-word;
 }

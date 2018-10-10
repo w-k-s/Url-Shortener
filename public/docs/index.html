@@ -2,10 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
     <title>small.ml API</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link rel="stylesheet" href="css/index.css"></link>
+    <link rel="stylesheet" media="screen and (min-width: 975px)" href="css/index.from975.css"></link>
     <script src="js/getoriginal.js"></script>
     <script src="js/shorten.js"></script>
     <script src="js/index.js"></script>
@@ -57,9 +59,9 @@
               <input id="btnVisit" type="submit" onclick="visitOriginal()" value="Go" onClick="getOriginal()"/>
             </div>
           </div>
-          <div class="curl-sample">
-            <code>curl 'https://small.ml/urlshortener/v1/url?shortUrl=https://small.ml/eg'</code>
-          </div>
+          <span class="curl-sample">
+            curl 'https://small.ml/urlshortener/v1/url?shortUrl=https://small.ml/eg'
+          </span>
         </section>
       </div>
     </main>
