@@ -32,11 +32,13 @@ Visit the website: [small.ml](https://small.ml)
 - [x] Use swagger.io on the home screen
 - [x] Consistent Naming: Url -> URL. Db -> DB. FullURL -> OriginalURL. ShortId -> ShortID
 - [x] Remove swagger (slow and ugly)
-- [ ] Log all req/resp via middleware
-- [ ] Log to file
-- [ ] Send Cache headers when converting
-- [ ] Serve static files with nginx, load balance (too much?)
-- [ ] Minify JS and CSS
+
+5. Enhance
+- [x] Send Cache headers when converting
+- [x] Log all req/resp via middleware to db
+- [ ] add db backups
+- [ ] Minify JS and CSS and serve via cdn/s3
+- [ ] Load balancer? (there's no load to speak of)
 
 Useful Resources
 

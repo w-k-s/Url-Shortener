@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	err "github.com/w-k-s/short-url/error"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Controller struct {
@@ -20,9 +22,46 @@ func NewController(service *Service) *Controller {
 
 //--URLResponse
 
+const urlResponseCacheControlMaxAge = 172800 // 2 days
+
 type urlResponse struct {
 	LongURL  string `json:"longUrl"`
 	ShortURL string `json:"shortUrl"`
+}
+
+func (u urlResponse) Hash() string {
+	parts := strings.Split(u.ShortURL, "/")
+	return parts[len(parts)-1]
+}
+
+func sendURLResponse(w http.ResponseWriter, req *http.Request, urlResponse *urlResponse) {
+
+	if eTag, ok := req.Header["If-None-Match"]; ok && urlResponse.Hash() == eTag[0] {
+		w.WriteHeader(http.StatusNotModified)
+		io.WriteString(w, "")
+		return
+	}
+
+	cacheControl := fmt.Sprintf(
+		"max-age=%d, public",
+		urlResponseCacheControlMaxAge,
+	)
+
+	w.Header().Set("Cache-Control", cacheControl)
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("ETag", urlResponse.Hash())
+	w.WriteHeader(http.StatusOK)
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(urlResponse)
+
+	if err != nil {
+		SendError(w, NewError(
+			URLResponseEncoding,
+			"Error encoding response",
+			map[string]string{"error": err.Error()},
+		))
+		return
+	}
 }
 
 //--Shorten URL
@@ -76,32 +115,22 @@ func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
 		Host:   req.Host,
 	}
 
-	longURL, err := parseShortenURLRequest(req)
-	if err != nil {
-		SendError(w, err)
+	longURL, appErr := parseShortenURLRequest(req)
+	if appErr != nil {
+		SendError(w, appErr)
 		return
 	}
 
-	shortURL, err := c.service.ShortenURL(reqURL, longURL)
-	if err != nil {
-		SendError(w, err)
+	shortURL, appErr := c.service.ShortenURL(reqURL, longURL)
+	if appErr != nil {
+		SendError(w, appErr)
 		return
 	}
 
-	encoder := json.NewEncoder(w)
-	_err_ := encoder.Encode(&urlResponse{
+	sendURLResponse(w, req, &urlResponse{
 		LongURL:  longURL.String(),
 		ShortURL: shortURL.String(),
 	})
-
-	if _err_ != nil {
-		SendError(w, NewError(
-			ShortenURLEncoding,
-			"Error encoding response",
-			map[string]string{"error": _err_.Error()},
-		))
-		return
-	}
 }
 
 //--Shorten URL
@@ -152,20 +181,10 @@ func (c *Controller) GetLongURL(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	encoder := json.NewEncoder(w)
-	_err_ := encoder.Encode(&urlResponse{
+	sendURLResponse(w, req, &urlResponse{
 		LongURL:  longURL.String(),
 		ShortURL: shortURL.String(),
 	})
-
-	if _err_ != nil {
-		SendError(w, NewError(
-			RetrieveFullURLEncoding,
-			"Error encoding response",
-			map[string]string{"error": _err_.Error()},
-		))
-		return
-	}
 }
 
 //--Redirect

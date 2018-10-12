@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/w-k-s/short-url/app"
 	"github.com/w-k-s/short-url/home"
+	"github.com/w-k-s/short-url/logging"
 	"github.com/w-k-s/short-url/urlshortener"
 	"golang.org/x/crypto/acme/autocert"
 	"log"
@@ -65,26 +66,28 @@ func init() {
 }
 
 func main() {
-	app := app.Init(dbConnString)
+	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
+	app := app.Init(logger, dbConnString)
 	defer app.Db.Close()
 
-	httpsRerouter := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
-	})
+	logRepository := logging.NewLogRepository(logger, app.Db)
 
 	mainRouter := mux.NewRouter()
-
-	urlshortener.Configure(app, mainRouter)
-	home.Configure(app, mainRouter)
+	mainRouter.Use(loggingMiddleware(logRepository))
 
 	mainRouter.
 		PathPrefix(STATIC_DIR).
 		Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("."+STATIC_DIR))))
 
+	urlshortener.Configure(app, mainRouter)
+	home.Configure(app, mainRouter)
+
 	var httpRouter http.Handler
 	if production {
 		initAutocertManager()
-		httpRouter = httpsRerouter
+		httpRouter = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+		})
 	} else {
 		httpRouter = mainRouter
 	}
@@ -95,6 +98,21 @@ func main() {
 
 	err := <-errchan
 	log.Fatalf("Shutting down server with error: %s", err)
+}
+
+func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			sw := logging.StatusWriter{ResponseWriter: w}
+
+			record := logRepository.LogRequest(r)
+
+			next.ServeHTTP(sw, r)
+
+			logRepository.LogResponse(sw, record)
+		})
+	}
 }
 
 //HTTPS Server

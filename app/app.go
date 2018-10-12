@@ -3,7 +3,6 @@ package app
 import (
 	"github.com/w-k-s/short-url/db"
 	"log"
-	"os"
 )
 
 type App struct {
@@ -11,9 +10,7 @@ type App struct {
 	Db     *db.Db
 }
 
-func Init(connString string) *App {
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-
+func Init(logger *log.Logger, connString string) *App {
 	db := db.New(connString)
 
 	app := &App{

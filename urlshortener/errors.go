@@ -8,14 +8,12 @@ import (
 
 const (
 	//Shortening URL
-	ShortenURLEncoding     err.Code = 10100
-	ShortenURLDecoding              = 10200
+	ShortenURLDecoding     err.Code = 10200
 	ShortenURLValidation            = 10300
 	ShortenURLFailedToSave          = 10400
 	ShortenURLUndocumented          = 10999
 
 	//Retrieving Long Url
-	RetrieveFullURLEncoding     = 11100
 	RetrieveFullURLDecoding     = 11200
 	RetrieveFullURLValidation   = 11300
 	RetrieveFullURLNotFound     = 11400
@@ -25,13 +23,14 @@ const (
 	//Redirectign to Long Url
 	RedirectionFullURLNotFound = 12100
 	RedirectionUndocumented    = 12999
+
+	//URLResponse
+	URLResponseEncoding = 13000
 )
 
 func domain(e err.Code) string {
 	switch e {
 	//Shortening URL
-	case ShortenURLEncoding:
-		return "shortenUrl.encoding"
 	case ShortenURLDecoding:
 		return "shortenUrl.decoding"
 	case ShortenURLValidation:
@@ -42,8 +41,6 @@ func domain(e err.Code) string {
 		return "shortenUrl.undocumented"
 
 	//Retrieving Long Url
-	case RetrieveFullURLEncoding:
-		return "retrieveFullURL.encoding"
 	case RetrieveFullURLDecoding:
 		return "retrieveFullURL.decoding"
 	case RetrieveFullURLValidation:
@@ -60,6 +57,11 @@ func domain(e err.Code) string {
 		return "redirection.urlNotFound"
 	case RedirectionUndocumented:
 		return "redirection.undocumented"
+
+	//Encoding URLResponse
+	case URLResponseEncoding:
+		return "urlResponse.encoding"
+
 	default:
 		return fmt.Sprintf("Unknown Domain (%d)", e)
 	}
