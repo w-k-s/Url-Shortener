@@ -115,12 +115,10 @@ func readRequestBody(r *http.Request) string {
 
 	if r.Body != nil {
 		bodyBytes, err = ioutil.ReadAll(r.Body)
-		fmt.Printf("bytes: %d\n", len(bodyBytes))
 		if err != nil {
 			return ""
 		}
 	}
-	fmt.Printf("bodyBytes: %s, error: %s\n", string(bodyBytes))
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	return string(bodyBytes)
 }

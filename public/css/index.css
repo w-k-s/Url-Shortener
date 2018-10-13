@@ -56,12 +56,17 @@ header .title {
   font-weight: bold;
 }
 
+.converter-container{
+  width: 100%;
+}
+
 .converter {
   display: flex;
   flex-direction: column;
   text-align: center;
   padding: 1.5em;
   justify-content: center;
+  flex: 1;
 }
 
 .converter-form {
