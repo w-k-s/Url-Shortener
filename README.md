@@ -36,7 +36,7 @@ Visit the website: [small.ml](https://small.ml)
 5. Enhance
 - [x] Send Cache headers when converting
 - [x] Log all req/resp via middleware to db
-- [ ] Save db backups to s3
+- [x] Save db backups to s3, set up midnight task
 - [ ] Minify JS and CSS and serve via nginx ?
 
 6. 
@@ -47,3 +47,4 @@ Useful Resources
 1. [Automating HTTPS with LetsEncrypt using autocert library](https://blog.kowalczyk.info/article/Jl3G/https-for-free-in-go-with-little-help-of-lets-encrypt.html)
 2. [Gaussian Distribution](https://stackoverflow.com/questions/29325069/how-to-generate-random-numbers-biased-towards-one-value-in-a-range)
 3. [Backup Mongodb to Amazon S3](https://gist.github.com/eladnava/96bd9771cd2e01fb4427230563991c8d)
+4. [Using `net/http` as front facing server](https://blog.cloudflare.com/exposing-go-on-the-internet/)
