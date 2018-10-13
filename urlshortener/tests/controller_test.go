@@ -97,26 +97,16 @@ func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyContainsRelativeURL(
 
 }
 
-func (suite *ControllerSuite) TesGetShortURLErrorResponseWhenShortURLNotGenerated() {
-
-	suite.generator.ShortId = "short"
-	jsonBytes := bytes.NewBuffer([]byte("{\"longUrl\":\"path/to/file\"}"))
-	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
-	w := httptest.NewRecorder()
-	suite.controller.ShortenURL(w, req)
-
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(u.ShortenURLFailedToSave), error.Code(), "Wrong error code. Expected: %d, got: %d", u.ShortenURLFailedToSave, error.Code())
-
-}
-
-func (suite *ControllerSuite) TesGetShortURLSuccessResponseWhenShortURLGenerated() {
+func (suite *ControllerSuite) TestGetShortURLSuccessResponseWhenShortURLGenerated() {
 
 	suite.generator.ShortId = "unique"
 	jsonBytes := bytes.NewBuffer([]byte("{\"longUrl\":\"http://www.eg.com\"}"))
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
+
+	assert.Equal(suite.T(), "application/json;charset=utf-8", w.Header()["Content-Type"][0])
+	assert.Contains(suite.T(), w.Header(), "Etag")
 
 	json := getJSONDictionaryOrNil(w)
 	shortUrl := json["shortUrl"].(string)
