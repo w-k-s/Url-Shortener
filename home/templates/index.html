@@ -8,8 +8,6 @@
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <link rel="stylesheet" href="public/css/index.css"></link>
     <link rel="stylesheet" media="screen and (min-width: 975px)" href="public/css/index.from975.css"></link>
-    <script src="public/js/getoriginal.js"></script>
-    <script src="public/js/shorten.js"></script>
     <script src="public/js/index.js"></script>
   </head>
   <body onload="init()">
@@ -32,14 +30,14 @@
           <div class="converter-form">
             <div class="row">
               <input id="inputLongUrl" type="url" placeholder="Enter a valid URL">
-              <input id="btnSubmitLongUrl" type="submit" onclick="shorten()" value="Shorten"/>
+              <input id="btnSubmitLongUrl" type="submit" value="Shorten"/>
             </div>
             <div id="inputLongUrlError">
               <span class="error"> There was an error</span>
             </div>
             <div class="row">
               <input id="outputShortUrl" type="text">
-              <input id="btnCopy" type="submit" onclick="copyShortUrl()" value="Copy"/>
+              <input id="btnCopy" type="submit" value="Copy"/>
             </div>
           </div>
           <div class="curl-sample">
@@ -52,14 +50,14 @@
           <div class="converter-form">
             <div class="row">
               <input id="inputShortUrl" type="url" placeholder="Enter a small.ml URL">
-              <input id="btnSubmitShortUrl" type="submit" onclick="getOriginal()" value="Get Orginal"/>
+              <input id="btnSubmitShortUrl" type="submit" value="Get Orginal"/>
             </div>
             <div id="inputShortUrlError">
               <span class="error"> There was an error</span>
             </div>
             <div class="row">
               <input id="outputOriginalUrl" type="text">
-              <input id="btnVisit" type="submit" onclick="visitOriginal()" value="Go" onClick="getOriginal()"/>
+              <input id="btnVisit" type="submit" value="Go"/>
             </div>
           </div>
           <span class="curl-sample">
