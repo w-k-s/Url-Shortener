@@ -94,7 +94,7 @@ func main() {
 
 	errchan := make(chan error, 1)
 	listenAndServeHTTPServer(httpRouter, errchan)
-	//listenAndServeHTTPSServer(mainRouter, errchan)
+	listenAndServeHTTPSServer(mainRouter, errchan)
 
 	err := <-errchan
 	log.Fatalf("Shutting down server with error: %s", err)
