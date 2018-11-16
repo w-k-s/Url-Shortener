@@ -22,14 +22,14 @@ test: fmt
 docker-build: fmt clean dep test
 	docker build -t $(BUILD_NAME):$(TAG) .
 
-docker-start-local: fmt clean dep 
+docker-start-dev: fmt clean dep 
 	go build 
-	docker-compose -f docker-compose.local.yml build
-	docker-compose -f docker-compose.local.yml up -d
+	docker-compose -f docker-compose.dev.yml build
+	docker-compose -f docker-compose.dev.yml up -d
 
-docker-end-local:
-	docker-compose -f docker-compose.local.yml stop
-	docker-compose -f docker-compose.local.yml rm
+docker-end-dev:
+	docker-compose -f docker-compose.dev.yml stop
+	docker-compose -f docker-compose.dev.yml rm
 
 docker-start-prod:
 	docker-compose -f docker-compose.production.yml up -d

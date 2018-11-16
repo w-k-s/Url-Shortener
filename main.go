@@ -73,7 +73,7 @@ func main() {
 
 	errchan := make(chan error, 1)
 	listenAndServeHTTPServer(httpRouter, errchan)
-	log.Fatalf("Error while configuring HTTP Server: %v", <- errchan)
+	log.Fatalf("Error while configuring HTTP Server: %v", <-errchan)
 }
 
 func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc {

@@ -1,8 +1,19 @@
 version: '3.1' #docker-compose syntax version
 
 services:
+  nginx: 
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - short-url
+      - short-url-frontend
+
   short-url:
-    build: . #build current directory
     image: short-url #image will be named 'short-url'
     container_name: short-url
     environment:
@@ -12,6 +23,12 @@ services:
     ports:
       - 8080:8080
       - 4430:443
+
+  short-url-frontend:
+    image: short-url-frontend
+    container_name: short-url-frontend
+    ports:
+      - 8081:8081
   
   datastore: #https://docs.docker.com/compose/networking/
     image: mongo
