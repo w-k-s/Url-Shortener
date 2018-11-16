@@ -1,6 +1,6 @@
 let service = {
 	getShortenedUrl: async longUrl => {
-		const res = await fetch("/urlshortener/v1/url", {
+		const res = await fetch(`${BASE_URL}/urlshortener/v1/url`, {
 			method: "POST",
 			mode: "cors",
 			credentials: "same-origin",
@@ -15,7 +15,7 @@ let service = {
 		return json;
 	},
 	getOriginalUrl: async shortUrl => {
-		const res = await fetch(`/urlshortener/v1/url?shortUrl=${shortUrl}`, {
+		const res = await fetch(`${BASE_URL}/urlshortener/v1/url?shortUrl=${shortUrl}`, {
 			method: "GET"
 		});
 		const json = await res.json();

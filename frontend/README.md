@@ -13,6 +13,8 @@
 
 ### To-Do
 
-- [ ] Set JavaScript variables through grunt 
-- [ ] Receive variables in JavaScript
-- [ ] [Run application through nginx in docker]()
+- [x] Set JavaScript variables through grunt 
+- [x] Receive variables in JavaScript
+- [x] [Run application through nginx in docker]()
+- [x] Optimise downloading of google font
+- [ ] cache static files on nginx
