@@ -17,4 +17,4 @@
 - [x] Receive variables in JavaScript
 - [x] [Run application through nginx in docker]()
 - [x] Optimise downloading of google font
-- [ ] cache static files on nginx
+- [x] cache static files using nginx
