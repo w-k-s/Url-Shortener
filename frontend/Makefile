@@ -1,0 +1,3 @@
+local:
+	npm run local
+

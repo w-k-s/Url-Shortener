@@ -5,10 +5,13 @@
     <title>small.ml API</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
-    <link rel="stylesheet" href="public/css/index.css"></link>
-    <link rel="stylesheet" media="screen and (min-width: 975px)" href="public/css/index.from975.css"></link>
+    <!-- build:css css/index.min.css -->
+    <link rel="stylesheet" href="css/index.css"></link>
+    <link rel="stylesheet" media="screen and (min-width: 975px)" href="css/index.from975.css"></link>
+    <!-- /build -->
+    <!-- build:js js/index.min.js -->
     <script src="public/js/index.js"></script>
+    <!-- /build -->
   </head>
   <body onload="init()">
     <header>
@@ -60,9 +63,9 @@
               <input id="btnVisit" type="submit" value="Go"/>
             </div>
           </div>
-          <span class="curl-sample">
-            curl 'https://small.ml/urlshortener/v1/url?shortUrl=https://small.ml/eg'
-          </span>
+          <div class="curl-sample">
+            <code>curl 'https://small.ml/urlshortener/v1/url?shortUrl=https://small.ml/eg'</code>
+          </div>
         </section>
       </div>
     </main>

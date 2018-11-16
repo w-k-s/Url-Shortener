@@ -1,15 +1,10 @@
 package main
 
 import (
-	"context"
-	"crypto/tls"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/w-k-s/short-url/app"
-	"github.com/w-k-s/short-url/home"
 	"github.com/w-k-s/short-url/logging"
 	"github.com/w-k-s/short-url/urlshortener"
-	"golang.org/x/crypto/acme/autocert"
 	"log"
 	"net/http"
 	"os"
@@ -23,7 +18,6 @@ var addressTLS string
 var production bool
 var certDir string
 var domains map[string]bool
-var autocertManager *autocert.Manager
 
 const STATIC_DIR string = "/public/"
 
@@ -72,32 +66,14 @@ func main() {
 
 	logRepository := logging.NewLogRepository(logger, app.Db)
 
-	mainRouter := mux.NewRouter()
-	mainRouter.Use(loggingMiddleware(logRepository))
+	httpRouter := mux.NewRouter()
+	httpRouter.Use(loggingMiddleware(logRepository))
 
-	mainRouter.
-		PathPrefix(STATIC_DIR).
-		Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("."+STATIC_DIR))))
-
-	urlshortener.Configure(app, mainRouter)
-	home.Configure(app, mainRouter)
-
-	var httpRouter http.Handler
-	if production {
-		initAutocertManager()
-		httpRouter = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
-		})
-	} else {
-		httpRouter = mainRouter
-	}
+	urlshortener.Configure(app, httpRouter)
 
 	errchan := make(chan error, 1)
 	listenAndServeHTTPServer(httpRouter, errchan)
-	listenAndServeHTTPSServer(mainRouter, errchan)
-
-	err := <-errchan
-	log.Fatalf("Shutting down server with error: %s", err)
+	log.Fatalf("Error while configuring HTTP Server: %v", <- errchan)
 }
 
 func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc {
@@ -115,71 +91,15 @@ func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc 
 	}
 }
 
-//HTTPS Server
-
-func initAutocertManager() {
-	hostPolicy := func(ctx context.Context, host string) error {
-		if isHostAllowed(host) {
-			return nil
-		}
-
-		err := fmt.Errorf("acme/autocert: host '%v' not allowed. Allowed domains: '%v'", host, domains)
-		log.Println(err)
-		return err
-	}
-
-	autocertManager = &autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: hostPolicy,
-		Cache:      autocert.DirCache(certDir),
-	}
-}
-
-func listenAndServeHTTPSServer(h http.Handler, errchan chan error) {
-
-	httpsServer := createServer(h, addressTLS)
-
-	go func(c chan error) {
-		if production {
-
-			httpsServer.TLSConfig = &tls.Config{GetCertificate: autocertManager.GetCertificate}
-
-			err := httpsServer.ListenAndServeTLS("", "")
-			if err != nil {
-				c <- fmt.Errorf("Error while configuring HTTPS Server (production mode): %v", err)
-			}
-
-		} else {
-
-			err := httpsServer.ListenAndServeTLS("server.crt", "server.key")
-			if err != nil {
-				c <- fmt.Errorf("Error while configuring HTTPS Server (development mode): %v", err)
-			}
-
-		}
-
-	}(errchan)
-}
-
-func isHostAllowed(host string) bool {
-	ok, _ := domains[host]
-	return ok
-}
-
 //HTTP Server
 
 func listenAndServeHTTPServer(h http.Handler, errchan chan error) {
 
 	httpServer := createServer(h, address)
 	go func(c chan error) {
-		if autocertManager != nil {
-			// allow autocert handle Let's Encrypt auth callbacks over HTTP.
-			// it'll pass all other urls to our hanlder
-			httpServer.Handler = autocertManager.HTTPHandler(httpServer.Handler)
-		}
 		err := httpServer.ListenAndServe()
 		if err != nil {
-			c <- fmt.Errorf("Error while configuring HTTP Server: %v", err)
+			errchan <- err
 		}
 	}(errchan)
 }
