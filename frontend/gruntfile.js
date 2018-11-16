@@ -36,8 +36,15 @@ module.exports = function (grunt) {
                     'build/index.html': ['index.html']
                 }
             }
+        },
+        copy: {
+          main: {
+            expand: true,
+            src: 'assets/*/**',
+            dest: 'build/',
+          },
         }
     });  
     // Default task.  
-    grunt.registerTask('default', ['uglify', 'cssmin','processhtml']);  
+    grunt.registerTask('default', ['uglify', 'cssmin','processhtml','copy']);  
 };

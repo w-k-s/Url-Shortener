@@ -7,12 +7,13 @@
     "grunt": "1.0.3",
     "grunt-contrib-cssmin": "3.0.0",
     "grunt-contrib-uglify-es": "3.3.0",
+    "grunt-contrib-copy": "1.0.0",
     "grunt-processhtml": "^0.4.1"
   },
   "dependencies": {
     "matchdep": "^2.0.0"
   },
-  "scripts":{
-    "local":"grunt; http-server build/"
+  "scripts": {
+    "local": "grunt; http-server build/"
   }
 }
