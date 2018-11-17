@@ -37,10 +37,10 @@ Visit the website: [small.ml](https://small.ml)
 - [x] Send Cache headers when converting
 - [x] Log all req/resp via middleware to db
 - [x] Save db backups to s3, set up midnight task
-- [ ] Minify JS and CSS and serve via nginx ?
-
-6. 
-- [ ] Load balancer (not needed but maybe just to play around with it???)
+- [x] Minify JS and CSS and serve via nginx
+- [ ] Move HTTPS to nginx
+- [x] Upload binary to docker instead of source
+- [ ] Document this montrosity
 
 Useful Resources
 
