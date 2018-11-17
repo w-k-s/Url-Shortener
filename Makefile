@@ -2,7 +2,7 @@ include .env
 export $(shell sed 's/=.*//' .env)
 
 clean:
-	rm -f $(CONTAINER_NAME)
+	rm -rf build/
 
 fmt:
 	gofmt -w .
@@ -17,7 +17,8 @@ test: fmt
 	#Ignore the vendor directory
 	go test  `go list ./... | grep -v vendor`
 
-docker-build: fmt clean dep test
+docker-build: fmt dep test clean
+	GOOS=linux GOARCH=amd64 go build -o build/app *.go
 	docker build -t $(IMAGE_NAME):$(TAG) .
 
 docker-start-dev: docker-build
@@ -34,5 +35,5 @@ docker-stop-prod:
 	docker-compose -f docker-compose.production.yml stop
 	docker-compose -f docker-compose.production.yml rm
 
-docker-hub-publish: docker-build
+dockerhub-publish: docker-build
 	docker push $(IMAGE_NAME):$(TAG)

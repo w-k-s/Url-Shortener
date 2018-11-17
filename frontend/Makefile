@@ -25,7 +25,7 @@ docker-build-prod: clean
 docker-start-prod: docker-build-prod
 	docker run --name $(SHORT_URL_FRONTEND_IMAGE_NAME) -d -p 8081:8081 $(IMAGE_NAME)
 
-docker-hub-publish: docker-build-prod
+dockerhub-publish: docker-build-prod
 	docker push $(IMAGE_NAME)
 
 docker-end:
