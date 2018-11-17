@@ -1,9 +1,9 @@
+const BASE_URL = "http://localhost:8080"
 let service = {
 	getShortenedUrl: async longUrl => {
 		const res = await fetch(`${BASE_URL}/urlshortener/v1/url`, {
 			method: "POST",
 			mode: "cors",
-			credentials: "same-origin",
 			body: JSON.stringify({
 				longUrl
 			})

@@ -1,10 +1,8 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
-BUILD_NAME = wkas/short-url
-
 clean:
-	rm -f $(BUILD_NAME)
+	rm -f $(CONTAINER_NAME)
 
 fmt:
 	gofmt -w .
@@ -20,19 +18,21 @@ test: fmt
 	go test  `go list ./... | grep -v vendor`
 
 docker-build: fmt clean dep test
-	docker build -t $(BUILD_NAME):$(TAG) .
+	docker build -t $(IMAGE_NAME):$(TAG) .
 
-docker-start-dev: fmt clean dep 
-	go build 
-	docker-compose -f docker-compose.dev.yml build
+docker-start-dev: docker-build
 	docker-compose -f docker-compose.dev.yml up -d
 
-docker-end-dev:
+docker-stop-dev:
 	docker-compose -f docker-compose.dev.yml stop
 	docker-compose -f docker-compose.dev.yml rm
 
-docker-start-prod:
+docker-start-prod: docker-build
 	docker-compose -f docker-compose.production.yml up -d
 
+docker-stop-prod:
+	docker-compose -f docker-compose.production.yml stop
+	docker-compose -f docker-compose.production.yml rm
+
 docker-hub-publish: docker-build
-	docker push $(BUILD_NAME)
+	docker push $(IMAGE_NAME):$(TAG)

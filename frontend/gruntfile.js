@@ -13,22 +13,13 @@ module.exports = function (grunt) {
             }
         },  
         uglify: {
-            local: {
-                options: {  
+            options: {  
                     compress: true  
-                },  
-                files: {  
-                    'build/js/index.min.js': [  'js/config.default.js','js/index.js']
-                }
-            },
-            prod: {
-                options: {  
-                    compress: true  
-                },  
-                files: {  
-                    'build/js/index.min.js': [  'js/config.prod.js','js/index.js']
-                }
-            }  
+            },  
+            applib: {  
+                src:['js/index.js'],
+                dest:'build/js/index.min.js'
+            }
         },
         processhtml: {
             dist: {
@@ -53,6 +44,5 @@ module.exports = function (grunt) {
         }
     });  
     // Default task.  
-    grunt.registerTask('default', ['uglify:local', 'cssmin','processhtml','copy']);  
-    grunt.registerTask('prod', ['uglify:prod', 'cssmin','processhtml','copy']);  
+    grunt.registerTask('default', ['uglify', 'cssmin','processhtml','copy']);  
 };

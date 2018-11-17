@@ -14,7 +14,6 @@
     "matchdep": "^2.0.0"
   },
   "scripts": {
-    "local": "grunt; http-server build/",
-    "prod": "grunt prod; http-server build/"
+    "start": "grunt; http-server build/"
   }
 }
