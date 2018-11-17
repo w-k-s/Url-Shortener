@@ -13,12 +13,21 @@ module.exports = function (grunt) {
             }
         },  
         uglify: {
-            options: {  
+            local:{
+                options: {  
                     compress: true  
-            },  
-            applib: {  
-                src:['js/index.js'],
-                dest:'build/js/index.min.js'
+                },  
+                files: {  
+                    'build/js/index.min.js':['js/config.default.js','js/index.js']
+                }
+            },
+            production:{
+                options: {  
+                    compress: true  
+                },  
+                files: {  
+                    'build/js/index.min.js':['js/config.production.js','js/index.js']
+                }
             }
         },
         processhtml: {
@@ -44,5 +53,6 @@ module.exports = function (grunt) {
         }
     });  
     // Default task.  
-    grunt.registerTask('default', ['uglify', 'cssmin','processhtml','copy']);  
+    grunt.registerTask('default', ['uglify:local', 'cssmin','processhtml','copy']);  
+    grunt.registerTask('production', ['uglify:production', 'cssmin','processhtml','copy']);  
 };
