@@ -135,3 +135,24 @@ header .title {
   text-align: left;
   word-wrap: break-word;
 }
+
+@media only screen and (min-width: 975px) {
+    html{
+      height: 100%;
+    }
+
+    main{
+      display: flex;
+      flex: 1;
+    }
+
+
+    .tab-container {
+      display: none;
+    }
+
+    .converter-container{
+      display: flex;
+      flex-direction: row;
+    }
+}
