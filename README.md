@@ -48,3 +48,5 @@ Useful Resources
 2. [Gaussian Distribution](https://stackoverflow.com/questions/29325069/how-to-generate-random-numbers-biased-towards-one-value-in-a-range)
 3. [Backup Mongodb to Amazon S3](https://gist.github.com/eladnava/96bd9771cd2e01fb4427230563991c8d)
 4. [Using `net/http` as front facing server](https://blog.cloudflare.com/exposing-go-on-the-internet/)
+5. [Setting up https on ec2 ubuntu](https://blog.cloudboost.io/setting-up-an-https-sever-with-node-amazon-ec2-nginx-and-lets-encrypt-46f869159469)
+5. [Setting up https on ami](https://coderwall.com/p/e7gzbq/https-with-certbot-for-nginx-on-amazon-linux)
