@@ -40,22 +40,43 @@ jobs:
           path: /tmp/test-results
   
   deploy:
+    docker:
+      - image: circleci/golang:1.8
+    working_directory: /go/src/github.com/w-k-s/short-url
     steps:
+      - checkout
+      - run: go get -v -t -d ./...
+      - run: GOOS=linux GOARCH=amd64 go build -o build/app *.go
+      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
-        name: Login to docker hub
-        command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+          name: Login to docker hub
+          command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
       - run:
-        name: docker build image
-        command: docker build -t wkas/short-url:$CIRCLE_BUILD_NUM
+          name: docker build image
+          command: docker build -t "wkas/short-url:$CIRCLE_BUILD_NUM" .
       - run:
-        name: docker push image
-        command: docker build -t wkas/short-url:$CIRCLE_BUILD_NUM
+          name: docker push image
+          command: docker push "wkas/short-url:$CIRCLE_BUILD_NUM"
+      # `-o StrictHostKeyChecking=no` disables 'The authenticity of host ? can't be established confirmation'
+      - run:
+          name: Secure copy docker-compose.production.yml
+          command: scp -o StrictHostKeyChecking=no docker-compose.production.yml ec2-user@small.ml:~/
+      - run:
+          name: Secure copy Makefile
+          command: scp -o StrictHostKeyChecking=no Makefile ec2-user@small.ml:~/
+      - run:
+          name: Secure copy nginx.conf
+          command: scp -o StrictHostKeyChecking=no nginx.conf ec2-user@small.ml:~/
+      - run:
+          name: Generate .env file
+          command: sh ./env.sh && scp -o StrictHostKeyChecking=no .env ec2-user@small.ml:~/
+      - run:
+          name: Up!
+          command: ssh -o StrictHostKeyChecking=no ec2-user@small.ml "make docker-restart-prod"
 
 workflows:
   version: 2
-  services:
-    - docker
-  build-and-deploy:
+  deployment:
     jobs:
       - build
       - deploy:
@@ -63,4 +84,4 @@ workflows:
             - build
           filters:
             branches:
-              only: master  
+              only: master

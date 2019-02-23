@@ -16,10 +16,10 @@ services:
       - short-url-frontend
 
   short-url:
-    image: ${IMAGE_NAME}:${TAG}
-    container_name: ${CONTAINER_NAME}
+    image: wkas/short-url:${TAG}
+    container_name: short-url
     env_file:
-      - secrets.env
+      - .env
     environment:
       ADDRESS: ":8080"
       ADDRESS_TLS: ":4430"

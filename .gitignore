@@ -1,5 +1,4 @@
 secrets.env
-server.key
-server.crt
 backup.sh
 build
+.env
