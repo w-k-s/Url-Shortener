@@ -80,7 +80,7 @@ func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			sw := logging.StatusWriter{ResponseWriter: w}
+			sw := &logging.StatusWriter{ResponseWriter: w}
 
 			record := logRepository.LogRequest(r)
 

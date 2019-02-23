@@ -102,7 +102,7 @@ func (lr *LogRepository) LogRequest(r *http.Request) *logRecord {
 	}
 }
 
-func (lr *LogRepository) LogResponse(sw StatusWriter, record *logRecord) error {
+func (lr *LogRepository) LogResponse(sw *StatusWriter, record *logRecord) error {
 	record.Status = sw.Status()
 	lr.logger.Println(record.String())
 	return lr.logsCollection().Insert(record)
