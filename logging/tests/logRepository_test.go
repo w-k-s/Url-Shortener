@@ -56,7 +56,7 @@ func (suite *LogRepositoryTestSuite) TestSaveRecordSucccessful() {
 
 	sw := repo.StatusWriter{ResponseWriter: httptest.NewRecorder()}
 	sw.WriteHeader(200)
-	err := suite.logRepo.LogResponse(sw, logRecord)
+	err := suite.logRepo.LogResponse(&sw, logRecord)
 
 	assert.Equal(suite.T(), 200, logRecord.Status)
 	assert.Nil(suite.T(), err, "Expected: save record. Got: %s", err)
