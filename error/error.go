@@ -3,10 +3,10 @@ package error
 import "encoding/json"
 
 type Error struct {
-	code    Code              `json:"code"`
-	domain  string            `json:"domain"`
-	message string            `json:"message"`
-	fields  map[string]string `json:"fields"`
+	code    Code
+	domain  string
+	message string
+	fields  map[string]string
 }
 
 func (e Error) Code() Code {
