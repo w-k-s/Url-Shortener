@@ -53,6 +53,8 @@ jobs:
 
 workflows:
   version: 2
+  services:
+    - docker
   build-and-deploy:
     jobs:
       - build
