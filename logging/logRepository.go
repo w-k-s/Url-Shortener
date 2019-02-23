@@ -97,7 +97,7 @@ func (lr *LogRepository) LogRequest(r *http.Request) *logRecord {
 		Time:      time.Now(),
 		Method:    r.Method,
 		URI:       r.RequestURI,
-		IpAddress: r.RemoteAddr,
+		IpAddress: r.Header.Get("X-Forwarded-For"),
 		Body:      readRequestBody(r),
 	}
 }
