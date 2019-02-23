@@ -38,3 +38,27 @@ jobs:
 
       - store_test_results:
           path: /tmp/test-results
+  
+  deploy:
+    steps:
+      - run:
+        name: Login to docker hub
+        command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+      - run:
+        name: docker build image
+        command: docker build -t wkas/short-url:$CIRCLE_BUILD_NUM
+      - run:
+        name: docker push image
+        command: docker build -t wkas/short-url:$CIRCLE_BUILD_NUM
+
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master  
