@@ -67,7 +67,7 @@ func buildShortenedURL(reqURL *url.URL, urlRecord *URLRecord) *url.URL {
 	}
 }
 
-func (s *Service) GetLongURL(shortURL *url.URL) (*url.URL, err.Err) {
+func (s *Service) GetLongURL(shortURL *url.URL, trackVisit bool) (*url.URL, err.Err) {
 
 	var shortId string
 	path := shortURL.Path
@@ -90,6 +90,17 @@ func (s *Service) GetLongURL(shortURL *url.URL) (*url.URL, err.Err) {
 			fmt.Sprintf("No URL for %s", shortId),
 			map[string]string{"error": err.Error()},
 		)
+	}
+
+	if trackVisit {
+		err = s.repo.TrackVisit(shortId)
+		if err != nil {
+			return nil, NewError(
+				ShortenURLSaveVisitTimeError,
+				fmt.Sprintf("Failed to add visit time for %s", shortId),
+				map[string]string{"error": err.Error()},
+			)
+		}
 	}
 
 	longURL, err := url.Parse(record.LongURL)

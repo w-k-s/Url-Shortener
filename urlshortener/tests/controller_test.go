@@ -45,6 +45,7 @@ func (suite *ControllerSuite) SetupTest() {
 	suite.record = &u.URLRecord{
 		SAVED_LONG_URL,
 		SAVED_SHORT_ID,
+		[]time.Time{},
 		time.Now(),
 	}
 

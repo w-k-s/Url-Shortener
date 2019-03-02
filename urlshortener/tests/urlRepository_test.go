@@ -29,6 +29,7 @@ func (suite *URLRepositoryTestSuite) SetupTest() {
 	suite.record = &repo.URLRecord{
 		"http://www.example.com",
 		"shrt",
+		[]time.Time{},
 		time.Now(),
 	}
 }
@@ -83,6 +84,20 @@ func (suite *URLRepositoryTestSuite) TestFindExistingLongURL() {
 
 	result, err := suite.urlRepo.LongURL(suite.record.ShortId)
 	expectation := result != nil && result.LongURL == suite.record.LongURL
+
+	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result, err)
+
+}
+
+func (suite *URLRepositoryTestSuite) TestTrackVisitTime() {
+	_, err := suite.urlRepo.SaveRecord(suite.record)
+	if err != nil {
+		panic(err)
+	}
+
+	err = suite.urlRepo.TrackVisit(suite.record.ShortId)
+	result, err := suite.urlRepo.LongURL(suite.record.ShortId)
+	expectation := result != nil && len(result.VisitTimes) == 1
 
 	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result, err)
 
