@@ -46,6 +46,7 @@ func (suite *ServiceSuite) SetupTest() {
 	suite.record = &u.URLRecord{
 		SAVED_LONG_URL,
 		SAVED_SHORT_ID,
+		[]time.Time{},
 		time.Now(),
 	}
 
@@ -107,7 +108,7 @@ func (suite *ServiceSuite) TestShortUrlErrorWhenShortIDNotUnique() {
 func (suite *ServiceSuite) TestGetLongURLErrorWhenShortURLHasNoPath() {
 
 	testUrl, _ := url.Parse("http://www.small.ml")
-	_, err := suite.service.GetLongURL(testUrl)
+	_, err := suite.service.GetLongURL(testUrl, false)
 	expectation := error.Code(u.RetrieveFullURLValidation)
 
 	assert.True(suite.T(), err != nil && err.Code() == expectation, "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, err)
@@ -116,7 +117,7 @@ func (suite *ServiceSuite) TestGetLongURLErrorWhenShortURLHasNoPath() {
 func (suite *ServiceSuite) TestGetLongURLErrorWhenRecordDoesNotExist() {
 
 	testUrl, _ := url.Parse("http://www.small.ml/nil")
-	_, err := suite.service.GetLongURL(testUrl)
+	_, err := suite.service.GetLongURL(testUrl, false)
 	expectation := error.Code(u.RetrieveFullURLNotFound)
 
 	assert.True(suite.T(), err != nil && err.Code() == expectation, "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, err)
@@ -126,25 +127,26 @@ func (suite *ServiceSuite) TestGetLongURLErrorWhenRecordDoesNotExist() {
 func (suite *ServiceSuite) TestGetLongURLWhenRecordExists() {
 
 	testUrl, _ := url.Parse(SAVED_SHORT_URL)
-	url, _ := suite.service.GetLongURL(testUrl)
+	url, _ := suite.service.GetLongURL(testUrl, false)
 
 	assert.Equal(suite.T(), url.String(), SAVED_LONG_URL, "GetLongURL returned wrong original url. Expected %s, Got: %s", SAVED_LONG_URL, url.String())
 }
 
-func (suite *ServiceSuite) estGetLongURLErrorWhenRecordExistsButInvalidURL() {
+// func (suite *ServiceSuite) TestGetLongURLErrorWhenRecordExistsButInvalidURL() {
 
-	record := &u.URLRecord{
-		"",
-		"wrong",
-		time.Now(),
-	}
+// 	record := &u.URLRecord{
+// 		"",
+// 		"wrong",
+// 		[]time.Time{},
+// 		time.Now(),
+// 	}
 
-	testUrl, _ := url.Parse("http://small.ml/wrong")
-	_, err := suite.urlRepo.SaveRecord(record)
-	if err != nil {
-		panic(err)
-	}
+// 	testUrl, _ := url.Parse("http://small.ml/wrong")
+// 	_, err := suite.urlRepo.SaveRecord(record)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	_, err2 := suite.service.GetLongURL(testUrl)
-	assert.Equal(suite.T(), err2.Code(), u.RetrieveFullURLParsing, "GetLongURL wrong error code. Expected '%d'. Got: %d", u.RetrieveFullURLParsing, err2.Code())
-}
+// 	_, err2 := suite.service.GetLongURL(testUrl, false)
+// 	assert.Equal(suite.T(), err2.Code(), u.RetrieveFullURLParsing, "GetLongURL wrong error code. Expected '%d'. Got: %d", u.RetrieveFullURLParsing, err2.Code())
+// }

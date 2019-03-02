@@ -13,9 +13,10 @@ const fieldShortId = "shortId"
 const fieldLongURL = "longUrl"
 
 type URLRecord struct {
-	LongURL    string    `bson:"longUrl"`
-	ShortId    string    `bson:"shortId"`
-	CreateTime time.Time `bson:"createTime"`
+	LongURL    string      `bson:"longUrl"`
+	ShortId    string      `bson:"shortId"`
+	VisitTimes []time.Time `bson:"visitTime"`
+	CreateTime time.Time   `bson:"createTime"`
 }
 
 type URLRepository struct {
@@ -71,6 +72,21 @@ func (ur *URLRepository) LongURL(shortId string) (*URLRecord, error) {
 	}
 
 	return &record, nil
+}
+
+func (ur *URLRepository) TrackVisit(shortId string) error {
+	var record URLRecord
+	err := ur.urlCollection().
+		Find(bson.M{fieldShortId: shortId}).
+		One(&record)
+
+	if err != nil {
+		return err
+	}
+
+	record.VisitTimes = append(record.VisitTimes, time.Now().UTC())
+	return ur.urlCollection().
+		Update(bson.M{fieldShortId: shortId}, &record)
 }
 
 func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
