@@ -8,11 +8,11 @@ import (
 
 const (
 	//Shortening URL
-	ShortenURLDecoding           err.Code = 10200
-	ShortenURLValidation                  = 10300
-	ShortenURLFailedToSave                = 10400
-	ShortenURLSaveVisitTimeError          = 10401
-	ShortenURLUndocumented                = 10999
+	ShortenURLDecoding        err.Code = 10200
+	ShortenURLValidation               = 10300
+	ShortenURLFailedToSave             = 10400
+	ShortenURLTrackVisitError          = 10401
+	ShortenURLUndocumented             = 10999
 
 	//Retrieving Long Url
 	RetrieveFullURLDecoding     = 11200

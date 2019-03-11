@@ -67,7 +67,7 @@ func buildShortenedURL(reqURL *url.URL, urlRecord *URLRecord) *url.URL {
 	}
 }
 
-func (s *Service) GetLongURL(shortURL *url.URL, trackVisit bool) (*url.URL, err.Err) {
+func (s *Service) GetLongURL(shortURL *url.URL, trackIp string) (*url.URL, err.Err) {
 
 	var shortId string
 	path := shortURL.Path
@@ -92,12 +92,16 @@ func (s *Service) GetLongURL(shortURL *url.URL, trackVisit bool) (*url.URL, err.
 		)
 	}
 
-	if trackVisit {
-		err = s.repo.TrackVisit(shortId)
+	if len(trackIp) >= 0 {
+		err = s.repo.TrackVisit(&VisitTrack{
+			IpAddress:  trackIp,
+			ShortId:    shortId,
+			CreateTime: time.Now(),
+		})
 		if err != nil {
 			return nil, NewError(
-				ShortenURLSaveVisitTimeError,
-				fmt.Sprintf("Failed to add visit time for %s", shortId),
+				ShortenURLTrackVisitError,
+				fmt.Sprintf("Failed to track visit for %s", shortId),
 				map[string]string{"error": err.Error()},
 			)
 		}
