@@ -175,7 +175,7 @@ func (c *Controller) GetLongURL(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	longURL, err := c.service.GetLongURL(shortURL, "")
+	longURL, err := c.service.GetLongURL(shortURL)
 	if err != nil {
 		SendError(w, err)
 		return
@@ -191,8 +191,7 @@ func (c *Controller) GetLongURL(w http.ResponseWriter, req *http.Request) {
 
 func (c *Controller) RedirectToLongURL(w http.ResponseWriter, req *http.Request) {
 
-	trackIp := req.Header.Get("X-Forwarded-For")
-	longURL, err := c.service.GetLongURL(req.URL, trackIp)
+	longURL, err := c.service.GetLongURL(req.URL)
 
 	fmt.Printf("redirecting to %s\n", longURL)
 
