@@ -41,7 +41,6 @@ type ServiceSuite struct {
 
 func (suite *ServiceSuite) SetupTest() {
 	suite.db = database.New("mongodb://localhost:27017/shorturl_test")
-	suite.urlRepo = u.NewURLRepository(suite.db)
 
 	suite.record = &u.URLRecord{
 		SAVED_LONG_URL,
@@ -53,15 +52,15 @@ func (suite *ServiceSuite) SetupTest() {
 		C("urls").
 		RemoveAll(bson.M{})
 
+	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
+	suite.generator = &MockShortIDGenerator{}
+	suite.urlRepo = u.NewURLRepository(suite.db, logger)
+	suite.service = u.NewService(suite.urlRepo, logger, suite.generator)
+
 	_, err := suite.urlRepo.SaveRecord(suite.record)
 	if err != nil {
 		panic(err)
 	}
-
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-	suite.generator = &MockShortIDGenerator{}
-
-	suite.service = u.NewService(suite.urlRepo, logger, suite.generator)
 }
 
 func (suite *ServiceSuite) TearDownTest() {

@@ -7,6 +7,8 @@ import (
 	repo "github.com/w-k-s/short-url/urlshortener"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"log"
+	"os"
 	"testing"
 	"time"
 )
@@ -23,8 +25,9 @@ func TestURLRepositoryTestSuite(t *testing.T) {
 }
 
 func (suite *URLRepositoryTestSuite) SetupTest() {
+	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.db = database.New("mongodb://localhost:27017/shorturl_test")
-	suite.urlRepo = repo.NewURLRepository(suite.db)
+	suite.urlRepo = repo.NewURLRepository(suite.db, logger)
 
 	suite.record = &repo.URLRecord{
 		"http://www.example.com",
