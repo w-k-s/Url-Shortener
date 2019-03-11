@@ -4,6 +4,7 @@ import (
 	database "github.com/w-k-s/short-url/db"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"log"
 	"time"
 )
 
@@ -26,7 +27,8 @@ type VisitTrack struct {
 }
 
 type URLRepository struct {
-	db *database.Db
+	db     *database.Db
+	logger *log.Logger
 }
 
 func NewURLRepository(db *database.Db) *URLRepository {
@@ -60,6 +62,7 @@ func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
 		Insert(record)
 
 	if err != nil {
+		ur.logLastError(err)
 		return nil, err
 	}
 
@@ -85,8 +88,14 @@ func (ur *URLRepository) LongURL(shortId string) (*URLRecord, error) {
 }
 
 func (ur *URLRepository) TrackVisit(visitTrack *VisitTrack) error {
-	return ur.visitTrackCollection().
+	err := ur.visitTrackCollection().
 		Insert(visitTrack)
+
+	if err != nil {
+		ur.logLastError(err)
+	}
+	
+	return err
 }
 
 func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
@@ -100,4 +109,10 @@ func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
 	}
 
 	return &record, nil
+}
+
+func (ur *URLRepository) logLastError(err error) {
+	if lastError, ok := err.(*mgo.LastError); ok {
+		ur.logger.Printf("Last Error. Code: %d, Message: %s (rows affected: %d)\n", lastError.Code, lastError.Err, lastError.N)
+	}
 }
