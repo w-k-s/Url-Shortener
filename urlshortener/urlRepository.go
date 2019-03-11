@@ -95,7 +95,7 @@ func (ur *URLRepository) TrackVisit(visitTrack *VisitTrack) error {
 	if err != nil {
 		ur.logLastError(err)
 	}
-
+	
 	return err
 }
 
