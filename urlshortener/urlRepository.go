@@ -9,7 +9,6 @@ import (
 )
 
 const collNameURLs = "urls"
-const colNameVisits = "visits"
 
 const fieldShortId = "shortId"
 const fieldLongURL = "longUrl"
@@ -40,10 +39,6 @@ func NewURLRepository(db *database.Db, logger *log.Logger) *URLRepository {
 
 func (ur *URLRepository) urlCollection() *mgo.Collection {
 	return ur.db.Instance().C(collNameURLs)
-}
-
-func (ur *URLRepository) visitTrackCollection() *mgo.Collection {
-	return ur.db.Instance().C(colNameVisits)
 }
 
 func (ur *URLRepository) updateIndexes() error {
@@ -86,17 +81,6 @@ func (ur *URLRepository) LongURL(shortId string) (*URLRecord, error) {
 	}
 
 	return &record, nil
-}
-
-func (ur *URLRepository) TrackVisit(visitTrack *VisitTrack) error {
-	err := ur.visitTrackCollection().
-		Insert(visitTrack)
-
-	if err != nil {
-		ur.logLastError(err)
-	}
-	
-	return err
 }
 
 func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
