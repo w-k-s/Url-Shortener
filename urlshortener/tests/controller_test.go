@@ -30,16 +30,20 @@ type ControllerSuite struct {
 
 func (suite *ControllerSuite) SetupTest() {
 	suite.db = db.New("mongodb://localhost:27017/shorturl_test")
-	suite.urlRepo = u.NewURLRepository(suite.db)
 
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.generator = &MockShortIDGenerator{}
 
+	suite.urlRepo = u.NewURLRepository(suite.db, logger)
 	suite.service = u.NewService(suite.urlRepo, logger, suite.generator)
 	suite.controller = u.NewController(suite.service)
 
 	suite.db.Instance().
 		C("urls").
+		RemoveAll(bson.M{})
+
+	suite.db.Instance().
+		C("visits").
 		RemoveAll(bson.M{})
 
 	suite.record = &u.URLRecord{

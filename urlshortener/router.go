@@ -8,7 +8,7 @@ import (
 func Configure(app *a.App, r *mux.Router) {
 
 	c := NewController(NewService(
-		NewURLRepository(app.Db()),
+		NewURLRepository(app.Db(), app.Logger()),
 		app.Logger(),
 		DefaultShortIdGenerator{},
 	))
