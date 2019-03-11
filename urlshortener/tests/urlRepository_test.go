@@ -29,7 +29,6 @@ func (suite *URLRepositoryTestSuite) SetupTest() {
 	suite.record = &repo.URLRecord{
 		"http://www.example.com",
 		"shrt",
-		[]time.Time{},
 		time.Now(),
 	}
 }
@@ -38,6 +37,10 @@ func (suite *URLRepositoryTestSuite) TearDownTest() {
 
 	suite.db.Instance().
 		C("urls").
+		RemoveAll(bson.M{})
+
+	suite.db.Instance().
+		C("visits").
 		RemoveAll(bson.M{})
 
 	defer suite.db.Close()
@@ -86,7 +89,6 @@ func (suite *URLRepositoryTestSuite) TestFindExistingLongURL() {
 	expectation := result != nil && result.LongURL == suite.record.LongURL
 
 	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result, err)
-
 }
 
 func (suite *URLRepositoryTestSuite) TestTrackVisitTime() {
@@ -95,12 +97,18 @@ func (suite *URLRepositoryTestSuite) TestTrackVisitTime() {
 		panic(err)
 	}
 
-	err = suite.urlRepo.TrackVisit(suite.record.ShortId)
-	result, err := suite.urlRepo.LongURL(suite.record.ShortId)
-	expectation := result != nil && len(result.VisitTimes) == 1
+	err = suite.urlRepo.TrackVisit(&repo.VisitTrack{
+		IpAddress:  "0.0.0.0",
+		ShortId:    suite.record.ShortId,
+		CreateTime: time.Now(),
+	})
+	var visitTrack repo.VisitTrack
+	err = suite.db.Instance().C("visits").Find(bson.M{"shortId": suite.record.ShortId}).
+		One(&visitTrack)
 
-	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result, err)
-
+	assert.Nil(suite.T(), err, "Expected: track visit. Got: %s", err)
+	assert.Equal(suite.T(), visitTrack.IpAddress, "0.0.0.0", "Incorrect IpAddress Saved. Expected '%s'. Got: %s", "0.0.0.0", visitTrack.IpAddress)
+	assert.Equal(suite.T(), visitTrack.ShortId, suite.record.ShortId, "Incorrect shortId Saved. Expected '%s'. Got: %s", suite.record.ShortId, visitTrack.ShortId)
 }
 
 func (suite *URLRepositoryTestSuite) TestFindAbsentLongURL() {
