@@ -18,6 +18,7 @@ services:
   short-url:
     image: wkas/short-url:${TAG}
     container_name: short-url
+    restart: always
     env_file:
       - .env
     environment:

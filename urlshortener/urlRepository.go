@@ -58,13 +58,13 @@ func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
 		Insert(record)
 
 	if err != nil {
-		ur.logLastError(err)
+		panicIfConnectionError(err)
 		return nil, err
 	}
 
 	err = ur.updateIndexes()
 	if err != nil {
-		return nil, err
+		log.Panic(err)
 	}
 
 	return record, nil
@@ -77,6 +77,7 @@ func (ur *URLRepository) LongURL(shortId string) (*URLRecord, error) {
 		One(&record)
 
 	if err != nil {
+		panicIfConnectionError(err)
 		return nil, err
 	}
 
@@ -90,6 +91,7 @@ func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
 		One(&record)
 
 	if err != nil {
+		panicIfConnectionError(err)
 		return nil, err
 	}
 
@@ -99,5 +101,17 @@ func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
 func (ur *URLRepository) logLastError(err error) {
 	if lastError, ok := err.(*mgo.LastError); ok {
 		ur.logger.Printf("Last Error. Code: %d, Message: %s (rows affected: %d)\n", lastError.Code, lastError.Err, lastError.N)
+	}
+}
+
+func isConnectionError(err error) bool {
+	otherError := mgo.IsDup(err) ||
+		err == mgo.ErrNotFound
+	return !otherError
+}
+
+func panicIfConnectionError(err error) {
+	if isConnectionError(err) {
+		log.Panic(err)
 	}
 }
