@@ -16,6 +16,7 @@ services:
   short-url:
     image: wkas/short-url:dev
     container_name: short-url
+    restart: always
     environment:
       ADDRESS: ":8080"
       ADDRESS_TLS: ":4430"
