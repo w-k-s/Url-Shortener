@@ -112,6 +112,6 @@ func isConnectionError(err error) bool {
 
 func panicIfConnectionError(err error) {
 	if isConnectionError(err) {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 }
