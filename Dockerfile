@@ -1,4 +1,4 @@
-FROM golang:1.9.2
+FROM alpine
 MAINTAINER W.K.S <waqqas.abdulkareem@gmail.com>
 
 RUN mkdir /app 

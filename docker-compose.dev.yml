@@ -26,7 +26,7 @@ services:
       - 4430:4430
 
   short-url-frontend:
-    image: wkas/short-url-frontend:1.0.1
+    image: wkas/short-url-frontend:dev
     container_name: short-url-frontend
     ports:
       - 8081:8081
