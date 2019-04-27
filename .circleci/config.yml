@@ -46,7 +46,6 @@ jobs:
     steps:
       - checkout
       - run: go get -v -t -d ./...
-      - run: GOOS=linux GOARCH=amd64 go build -o build/app *.go
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
