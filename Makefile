@@ -15,7 +15,6 @@ test: fmt
 	go test  `go list ./... | grep -v vendor`
 
 docker-build: fmt dep test clean
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o build/app *.go
 	docker build -t wkas/short-url:dev .
 
 docker-start-dev: docker-build
