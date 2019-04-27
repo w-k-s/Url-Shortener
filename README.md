@@ -50,3 +50,4 @@ Useful Resources
 4. [Using `net/http` as front facing server](https://blog.cloudflare.com/exposing-go-on-the-internet/)
 5. [Setting up https on ec2 ubuntu](https://blog.cloudboost.io/setting-up-an-https-sever-with-node-amazon-ec2-nginx-and-lets-encrypt-46f869159469)
 5. [Setting up https on ami](https://coderwall.com/p/e7gzbq/https-with-certbot-for-nginx-on-amazon-linux)
+6. [Building Go for Alpine Linux](https://www.blang.io/posts/2015-04_golang-alpine-build-golang-binaries-for-alpine-linux/)
