@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	err "github.com/w-k-s/short-url/error"
-	"io"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 type Controller struct {
@@ -29,27 +27,9 @@ type urlResponse struct {
 	ShortURL string `json:"shortUrl"`
 }
 
-func (u urlResponse) Hash() string {
-	parts := strings.Split(u.ShortURL, "/")
-	return parts[len(parts)-1]
-}
-
 func sendURLResponse(w http.ResponseWriter, req *http.Request, urlResponse *urlResponse) {
 
-	if eTag, ok := req.Header["If-None-Match"]; ok && urlResponse.Hash() == eTag[0] {
-		w.WriteHeader(http.StatusNotModified)
-		io.WriteString(w, "")
-		return
-	}
-
-	cacheControl := fmt.Sprintf(
-		"max-age=%d, public",
-		urlResponseCacheControlMaxAge,
-	)
-
-	w.Header().Set("Cache-Control", cacheControl)
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.Header().Set("ETag", urlResponse.Hash())
 	w.WriteHeader(http.StatusOK)
 	encoder := json.NewEncoder(w)
 	err := encoder.Encode(urlResponse)

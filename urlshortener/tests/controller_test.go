@@ -110,7 +110,6 @@ func (suite *ControllerSuite) TestGetShortURLSuccessResponseWhenShortURLGenerate
 	suite.controller.ShortenURL(w, req)
 
 	assert.Equal(suite.T(), "application/json;charset=utf-8", w.Header()["Content-Type"][0])
-	assert.Contains(suite.T(), w.Header(), "Etag")
 
 	json := getJSONDictionaryOrNil(w)
 	shortUrl := json["shortUrl"].(string)
