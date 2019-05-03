@@ -15,7 +15,7 @@ test: fmt
 	go test  `go list ./... | grep -v vendor`
 
 docker-build: fmt dep test clean
-	docker build -t wkas/short-url:dev .
+	docker build --no-cache -t wkas/short-url:dev .
 
 docker-start-dev: docker-build
 	docker-compose -f docker-compose.dev.yml up -d
