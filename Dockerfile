@@ -1,10 +1,13 @@
-FROM golang:1.9.2 as builder
+FROM golang:1.12.4 as builder
 MAINTAINER W.K.S <waqqas.abdulkareem@gmail.com>
 
 WORKDIR /go/src/github.com/w-k-s/short-url
 
 COPY . /go/src/github.com/w-k-s/short-url
-RUN go get -v -t -d ./...
+
+ENV GO111MODULE=on
+
+RUN go get
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o short-url *.go
 

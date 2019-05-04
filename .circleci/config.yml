@@ -3,11 +3,12 @@ jobs:
   build:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
-      - image: circleci/golang:1.8
+      - image: circleci/golang:1.12
       - image: "circleci/mongo:3.6.0"
 
     environment:
       TEST_RESULTS: /tmp/test-results
+      GO111MODULE: "on"
 
     working_directory: /go/src/github.com/w-k-s/short-url
     steps:
@@ -16,9 +17,9 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-pkg-cache
+            - go-mod-v1-{{ checksum "go.sum" }}
 
-      - run: go get -v -t -d ./...
+      - run: go get
       - run: go get github.com/jstemmer/go-junit-report
 
       - run:
@@ -28,9 +29,9 @@ jobs:
             make test | tee ${TEST_RESULTS}/go-test.out
 
       - save_cache:
-          key: v1-pkg-cache
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg"
+            - "/go/pkg/mod"
 
       - store_artifacts:
           path: /tmp/test-results
@@ -41,11 +42,13 @@ jobs:
   
   deploy:
     docker:
-      - image: circleci/golang:1.8
+      - image: circleci/golang:1.12
+    environment:
+      GO111MODULE: "on"
     working_directory: /go/src/github.com/w-k-s/short-url
     steps:
       - checkout
-      - run: go get -v -t -d ./...
+      - run: go get
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
