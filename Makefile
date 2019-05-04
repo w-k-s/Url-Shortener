@@ -4,17 +4,13 @@ clean:
 fmt:
 	gofmt -w .
 
-dep:
-	godep save
-
-run: fmt dep 
+run: fmt
 	go run *.go
 
 test: fmt
-	#Ignore the vendor directory
-	go test  `go list ./... | grep -v vendor`
+	go test ./...
 
-docker-build: fmt dep test clean
+docker-build: fmt test clean
 	docker build --no-cache -t wkas/short-url:dev .
 
 docker-start-dev: docker-build
