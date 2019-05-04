@@ -38,7 +38,7 @@ Visit the website: [small.ml](https://small.ml)
 - [x] Log all req/resp via middleware to db
 - [x] Save db backups to s3, set up midnight task
 - [x] Minify JS and CSS and serve via nginx
-- [ ] Move HTTPS to nginx
+- [x] Move HTTPS to nginx
 - [x] Upload binary to docker instead of source
 - [ ] Document this montrosity
 
@@ -51,3 +51,5 @@ Useful Resources
 5. [Setting up https on ec2 ubuntu](https://blog.cloudboost.io/setting-up-an-https-sever-with-node-amazon-ec2-nginx-and-lets-encrypt-46f869159469)
 5. [Setting up https on ami](https://coderwall.com/p/e7gzbq/https-with-certbot-for-nginx-on-amazon-linux)
 6. [Building Go for Alpine Linux](https://www.blang.io/posts/2015-04_golang-alpine-build-golang-binaries-for-alpine-linux/)
+7. [Migrating to go modules](https://blog.callr.tech/migrating-from-dep-to-go-1.11-modules/)
+8. [Reduce Docker image size with multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/)
