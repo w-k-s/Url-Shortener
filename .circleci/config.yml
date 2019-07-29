@@ -75,17 +75,6 @@ jobs:
       - run:
           name: Up!
           command: ssh -o StrictHostKeyChecking=no ec2-user@small.ml "make docker-restart-prod"
-  publish-github-release:
-    docker:
-      - image: circleci/golang:1.12
-    steps:
-      - attach_workspace:
-          at: ./artifacts
-      - run:
-          name: "Publish Release on GitHub"
-          command: |
-            go get github.com/tcnksm/ghr
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_BUILD_NUM} ./artifacts/
 
 workflows:
   version: 2
@@ -95,12 +84,6 @@ workflows:
       - deploy:
           requires:
             - build
-          filters:
-            branches:
-              only: master
-      - publish-github-release:
-          requires:
-            - deploy
           filters:
             branches:
               only: master
