@@ -13,21 +13,21 @@ import (
 
 const collNameLogs = "logs"
 
-const fieldShortId = "shortId"
+const fieldShortID = "shortId"
 const fieldLongURL = "longUrl"
 
 type logRecord struct {
 	Time      time.Time `bson:"createTime"`
 	Method    string    `bson:"method"`
 	URI       string    `bson:"requestUri"`
-	IpAddress string    `bson:"ipAddress"`
+	IPAddress string    `bson:"ipAddress"`
 	Status    int       `bson:"status"`
 	Body      string    `bson:"body"`
 }
 
 func (lr logRecord) String() string {
 	return fmt.Sprintf("%s: %s %s %s - %d",
-		lr.IpAddress,
+		lr.IPAddress,
 		lr.Method,
 		lr.URI,
 		lr.Body,
@@ -97,7 +97,7 @@ func (lr *LogRepository) LogRequest(r *http.Request) *logRecord {
 		Time:      time.Now(),
 		Method:    r.Method,
 		URI:       r.RequestURI,
-		IpAddress: r.Header.Get("X-Forwarded-For"),
+		IPAddress: r.Header.Get("X-Forwarded-For"),
 		Body:      readRequestBody(r),
 	}
 }

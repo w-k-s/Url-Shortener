@@ -11,10 +11,10 @@ import (
 type Service struct {
 	repo      *URLRepository
 	logger    *log.Logger
-	generator ShortIdGenerator
+	generator ShortIDGenerator
 }
 
-func NewService(repo *URLRepository, logger *log.Logger, generator ShortIdGenerator) *Service {
+func NewService(repo *URLRepository, logger *log.Logger, generator ShortIDGenerator) *Service {
 	return &Service{
 		repo,
 		logger,
@@ -28,47 +28,47 @@ func (s *Service) ShortenURL(reqURL *url.URL, shortReq shortenURLRequest) (*url.
 	existingRecord, _ := s.repo.ShortURL(longURL.String())
 
 	if existingRecord != nil {
-		s.logger.Printf("Record found. Long Url: %s, shortURL: %s", longURL, existingRecord.ShortId)
+		s.logger.Printf("Record found. Long Url: %s, shortURL: %s", longURL, existingRecord.ShortID)
 		return buildShortenedURL(reqURL, existingRecord), nil
 	}
 
 	if shortReq.UserDidSpecifyShortId() {
 		newRecord, err := s.repo.SaveRecord(&URLRecord{
 			LongURL:    longURL.String(),
-			ShortId:    shortReq.ShortId,
+			ShortID:    shortReq.ShortID,
 			CreateTime: time.Now(),
 		})
 		if err != nil {
 			return nil, NewError(
 				ShortenURLShortIdInUse,
-				fmt.Sprintf("Can not save shortId '%s'; possibly in-use", shortReq.ShortId),
+				fmt.Sprintf("Can not save shortId '%s'; possibly in-use", shortReq.ShortID),
 				map[string]string{"error": err.Error()},
 			)
 		}
 		return buildShortenedURL(reqURL, newRecord), nil
 	}
 
-	shortIdLengths := []ShortIdLength{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
+	shortIDLengths := []ShortIDLength{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
 	inserted := false
 	var newRecord *URLRecord
 	var err error
 
-	for try := 0; !inserted && try < len(shortIdLengths); try++ {
-		shortId := s.generator.Generate(shortIdLengths[try])
+	for try := 0; !inserted && try < len(shortIDLengths); try++ {
+		shortID := s.generator.Generate(shortIDLengths[try])
 		newRecord, err = s.repo.SaveRecord(&URLRecord{
 			LongURL:    longURL.String(),
-			ShortId:    shortId,
+			ShortID:    shortID,
 			CreateTime: time.Now(),
 		})
 
-		s.logger.Printf("longURL '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %v\n\n", longURL, try, shortId, err)
+		s.logger.Printf("longURL '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %v\n\n", longURL, try, shortID, err)
 		inserted = err == nil
 	}
 
 	if !inserted {
 		return nil, NewError(
 			ShortenURLFailedToSave,
-			fmt.Sprintf("Failed to find a shortId after %d attempts", len(shortIdLengths)),
+			fmt.Sprintf("Failed to find a shortId after %d attempts", len(shortIDLengths)),
 			map[string]string{"error": err.Error()},
 		)
 	}
@@ -80,13 +80,13 @@ func buildShortenedURL(reqURL *url.URL, urlRecord *URLRecord) *url.URL {
 	return &url.URL{
 		Scheme: reqURL.Scheme,
 		Host:   reqURL.Host,
-		Path:   urlRecord.ShortId,
+		Path:   urlRecord.ShortID,
 	}
 }
 
 func (s *Service) GetLongURL(shortURL *url.URL) (*url.URL, err.Err) {
 
-	var shortId string
+	var shortID string
 	path := shortURL.Path
 	if len(path) == 0 {
 		return nil, NewError(
@@ -97,14 +97,14 @@ func (s *Service) GetLongURL(shortURL *url.URL) (*url.URL, err.Err) {
 	}
 
 	if path[0] == '/' {
-		shortId = path[1:]
+		shortID = path[1:]
 	}
 
-	record, err := s.repo.LongURL(shortId)
+	record, err := s.repo.LongURL(shortID)
 	if err != nil {
 		return nil, NewError(
 			RetrieveFullURLNotFound,
-			fmt.Sprintf("No URL for %s", shortId),
+			fmt.Sprintf("No URL for %s", shortID),
 			map[string]string{"error": err.Error()},
 		)
 	}

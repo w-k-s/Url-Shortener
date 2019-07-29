@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
-const DB_NAME string = "shorturl_test"
-const CONN_STRING string = "mongodb://localhost:27017/" + DB_NAME
+const dbName string = "shorturl_test"
+const connString string = "mongodb://localhost:27017/" + dbName
 
 func TestNew(t *testing.T) {
-	db := db.New(CONN_STRING)
+	db := db.New(connString)
 	actualName := db.Instance().Name
-	assert.Equal(t, actualName, DB_NAME, "Db name parsed incorrectly, got: %s, want: %s", actualName, DB_NAME)
+	assert.Equal(t, actualName, dbName, "Db name parsed incorrectly, got: %s, want: %s", actualName, dbName)
 }
