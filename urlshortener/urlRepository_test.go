@@ -1,10 +1,9 @@
-package tests
+package urlshortener
 
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	database "github.com/w-k-s/short-url/db"
-	repo "github.com/w-k-s/short-url/urlshortener"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
@@ -16,8 +15,8 @@ import (
 type URLRepositoryTestSuite struct {
 	suite.Suite
 	db      *database.Db
-	urlRepo *repo.URLRepository
-	record  *repo.URLRecord
+	urlRepo *URLRepository
+	record  *URLRecord
 }
 
 func TestURLRepositoryTestSuite(t *testing.T) {
@@ -27,9 +26,9 @@ func TestURLRepositoryTestSuite(t *testing.T) {
 func (suite *URLRepositoryTestSuite) SetupTest() {
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.db = database.New("mongodb://localhost:27017/shorturl_test")
-	suite.urlRepo = repo.NewURLRepository(suite.db, logger)
+	suite.urlRepo = NewURLRepository(suite.db, logger)
 
-	suite.record = &repo.URLRecord{
+	suite.record = &URLRecord{
 		"http://www.example.com",
 		"shrt",
 		time.Now(),

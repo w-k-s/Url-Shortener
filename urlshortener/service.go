@@ -22,8 +22,9 @@ func NewService(repo *URLRepository, logger *log.Logger, generator ShortIdGenera
 	}
 }
 
-func (s *Service) ShortenURL(reqURL *url.URL, longURL *url.URL) (*url.URL, err.Err) {
+func (s *Service) ShortenURL(reqURL *url.URL, shortReq shortenURLRequest) (*url.URL, err.Err) {
 
+	longURL := shortReq.parsedURL
 	existingRecord, _ := s.repo.ShortURL(longURL.String())
 
 	if existingRecord != nil {
@@ -31,13 +32,29 @@ func (s *Service) ShortenURL(reqURL *url.URL, longURL *url.URL) (*url.URL, err.E
 		return buildShortenedURL(reqURL, existingRecord), nil
 	}
 
-	deviations := []Deviation{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
+	if shortReq.UserDidSpecifyShortId() {
+		newRecord, err := s.repo.SaveRecord(&URLRecord{
+			LongURL:    longURL.String(),
+			ShortId:    shortReq.ShortId,
+			CreateTime: time.Now(),
+		})
+		if err != nil {
+			return nil, NewError(
+				ShortenURLShortIdInUse,
+				fmt.Sprintf("Can not save shortId '%s'; possibly in-use", shortReq.ShortId),
+				map[string]string{"error": err.Error()},
+			)
+		}
+		return buildShortenedURL(reqURL, newRecord), nil
+	}
+
+	shortIdLengths := []ShortIdLength{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
 	inserted := false
 	var newRecord *URLRecord
 	var err error
 
-	for try := 0; !inserted && try < len(deviations); try++ {
-		shortId := s.generator.Generate(deviations[try])
+	for try := 0; !inserted && try < len(shortIdLengths); try++ {
+		shortId := s.generator.Generate(shortIdLengths[try])
 		newRecord, err = s.repo.SaveRecord(&URLRecord{
 			LongURL:    longURL.String(),
 			ShortId:    shortId,
@@ -51,7 +68,7 @@ func (s *Service) ShortenURL(reqURL *url.URL, longURL *url.URL) (*url.URL, err.E
 	if !inserted {
 		return nil, NewError(
 			ShortenURLFailedToSave,
-			fmt.Sprintf("Failed to find a shortId after %d attempts", len(deviations)),
+			fmt.Sprintf("Failed to find a shortId after %d attempts", len(shortIdLengths)),
 			map[string]string{"error": err.Error()},
 		)
 	}
