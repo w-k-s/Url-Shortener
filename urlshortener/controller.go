@@ -47,16 +47,23 @@ func sendURLResponse(w http.ResponseWriter, req *http.Request, urlResponse *urlR
 //--Shorten URL
 
 type shortenURLRequest struct {
-	LongURL string `json:"longUrl"`
+	LongURL   string `json:"longUrl"`
+	ShortId   string `json:"ShortId"`
+	parsedURL *url.URL
 }
 
-func parseShortenURLRequest(req *http.Request) (*url.URL, err.Err) {
+func (s shortenURLRequest) UserDidSpecifyShortId() bool {
+	return len(s.ShortId) > 0
+}
+
+func parseShortenURLRequest(req *http.Request) (shortenURLRequest, err.Err) {
+
+	decoder := json.NewDecoder(req.Body)
 
 	var shortenReq shortenURLRequest
-	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&shortenReq)
 	if err != nil {
-		return nil, NewError(
+		return shortenURLRequest{}, NewError(
 			ShortenURLDecoding,
 			"JSON Body must include `longUrl`",
 			map[string]string{"error": err.Error()},
@@ -65,7 +72,7 @@ func parseShortenURLRequest(req *http.Request) (*url.URL, err.Err) {
 
 	rawURL, err := url.Parse(shortenReq.LongURL)
 	if err != nil {
-		return nil, NewError(
+		return shortenURLRequest{}, NewError(
 			ShortenURLValidation,
 			fmt.Sprintf("'%s' is not a valid url", shortenReq.LongURL),
 			map[string]string{"error": err.Error()},
@@ -73,14 +80,18 @@ func parseShortenURLRequest(req *http.Request) (*url.URL, err.Err) {
 	}
 
 	if !rawURL.IsAbs() {
-		return nil, NewError(
+		return shortenURLRequest{}, NewError(
 			ShortenURLValidation,
 			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortenReq.LongURL),
 			nil,
 		)
 	}
 
-	return rawURL, nil
+	return shortenURLRequest{
+		LongURL:   shortenReq.LongURL,
+		ShortId:   shortenReq.ShortId,
+		parsedURL: rawURL,
+	}, nil
 }
 
 func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
@@ -95,20 +106,20 @@ func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
 		Host:   req.Host,
 	}
 
-	longURL, appErr := parseShortenURLRequest(req)
+	shortReq, appErr := parseShortenURLRequest(req)
 	if appErr != nil {
 		SendError(w, appErr)
 		return
 	}
 
-	shortURL, appErr := c.service.ShortenURL(reqURL, longURL)
+	shortURL, appErr := c.service.ShortenURL(reqURL, shortReq)
 	if appErr != nil {
 		SendError(w, appErr)
 		return
 	}
 
 	sendURLResponse(w, req, &urlResponse{
-		LongURL:  longURL.String(),
+		LongURL:  shortReq.parsedURL.String(),
 		ShortURL: shortURL.String(),
 	})
 }
