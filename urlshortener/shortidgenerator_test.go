@@ -10,8 +10,8 @@ func TestGenerator(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 
-		gen := DefaultShortIdGenerator{}
-		shortIds := []string{
+		gen := DefaultShortIDGenerator{}
+		shortIDs := []string{
 			gen.Generate(VERY_SHORT),
 			gen.Generate(SHORT),
 			gen.Generate(MEDIUM),
@@ -19,13 +19,13 @@ func TestGenerator(t *testing.T) {
 		}
 
 		compareLengths := func(i, j int) bool {
-			left := shortIds[i]
-			right := shortIds[j]
+			left := shortIDs[i]
+			right := shortIDs[j]
 			return len(right) > len(left)
 		}
 
-		sorted := sort.SliceIsSorted(shortIds, compareLengths)
+		sorted := sort.SliceIsSorted(shortIDs, compareLengths)
 
-		assert.True(t, sorted, "Expected VERY_SHORT, SHORT, MEDIUM, VERY_LONG. Got %v", shortIds)
+		assert.True(t, sorted, "Expected VERY_SHORT, SHORT, MEDIUM, VERY_LONG. Got %v", shortIDs)
 	}
 }

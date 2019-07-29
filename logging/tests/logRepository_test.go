@@ -48,7 +48,7 @@ func (suite *LogRepositoryTestSuite) TestSaveRecordSucccessful() {
 	logRecord := suite.logRepo.LogRequest(req)
 
 	assert.NotNil(suite.T(), logRecord.Time)
-	assert.NotNil(suite.T(), logRecord.IpAddress)
+	assert.NotNil(suite.T(), logRecord.IPAddress)
 	assert.Equal(suite.T(), "POST", logRecord.Method)
 	assert.Equal(suite.T(), req.RequestURI, logRecord.URI)
 	assert.Equal(suite.T(), stringBody, logRecord.Body)
