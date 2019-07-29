@@ -13,23 +13,23 @@ import (
 //
 // If Deviation is greater than or equal to bias, the bias number is more liely to occur
 // If deviation is less than half the bias, the bias number is unlikely to occur
-type ShortIdLength int
+type ShortIDLength int
 
 const bias int = 10000
 const (
-	VERY_SHORT ShortIdLength = 2 * 10000 // bias * 3
-	SHORT      ShortIdLength = 10000     // bias
-	MEDIUM     ShortIdLength = 10000 / 4 // bias/4
-	VERY_LONG  ShortIdLength = 1
+	VERY_SHORT ShortIDLength = 2 * 10000 // bias * 3
+	SHORT      ShortIDLength = 10000     // bias
+	MEDIUM     ShortIDLength = 10000 / 4 // bias/4
+	VERY_LONG  ShortIDLength = 1
 )
 
-type ShortIdGenerator interface {
-	Generate(idLength ShortIdLength) string
+type ShortIDGenerator interface {
+	Generate(idLength ShortIDLength) string
 }
 
-type DefaultShortIdGenerator struct{}
+type DefaultShortIDGenerator struct{}
 
-func (gen DefaultShortIdGenerator) Generate(idLength ShortIdLength) string {
+func (gen DefaultShortIDGenerator) Generate(idLength ShortIDLength) string {
 	biasedRandom := uint64(randBias(0, 1<<31-1, bias, float64(idLength)))
 	return basenconv.FormatBase62(biasedRandom)
 }

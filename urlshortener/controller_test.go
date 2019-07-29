@@ -46,8 +46,8 @@ func (suite *ControllerSuite) SetupTest() {
 		RemoveAll(bson.M{})
 
 	suite.record = &URLRecord{
-		SAVED_LONG_URL,
-		SAVED_SHORT_ID,
+		savedLongURL,
+		savedShortID,
 		time.Now(),
 	}
 
@@ -102,7 +102,7 @@ func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyContainsRelativeURL(
 
 func (suite *ControllerSuite) TestGetShortURLSuccessResponseWhenShortURLGenerated() {
 
-	suite.generator.ShortId = "unique"
+	suite.generator.ShortID = "unique"
 	jsonBytes := bytes.NewBuffer([]byte("{\"longUrl\":\"http://www.eg.com\"}"))
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
@@ -111,14 +111,14 @@ func (suite *ControllerSuite) TestGetShortURLSuccessResponseWhenShortURLGenerate
 	assert.Equal(suite.T(), "application/json;charset=utf-8", w.Header()["Content-Type"][0])
 
 	json := getJSONDictionaryOrNil(w)
-	shortUrl := json["shortUrl"].(string)
-	assert.Contains(suite.T(), shortUrl, suite.generator.ShortId, "Generated shortid '%s' not in short url '%s'", suite.generator.ShortId, shortUrl)
+	shortURL := json["shortUrl"].(string)
+	assert.Contains(suite.T(), shortURL, suite.generator.ShortID, "Generated shortid '%s' not in short url '%s'", suite.generator.ShortID, shortURL)
 
 }
 
 func (suite *ControllerSuite) TestRedirectSuccessResponseWhenShortURLExists() {
 
-	req := httptest.NewRequest("GET", SAVED_SHORT_URL, nil)
+	req := httptest.NewRequest("GET", savedShortURL, nil)
 	w := httptest.NewRecorder()
 	suite.controller.RedirectToLongURL(w, req)
 	resp := w.Result()

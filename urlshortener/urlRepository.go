@@ -10,18 +10,18 @@ import (
 
 const collNameURLs = "urls"
 
-const fieldShortId = "shortId"
+const fieldShortID = "shortId"
 const fieldLongURL = "longUrl"
 
 type URLRecord struct {
 	LongURL    string    `bson:"longUrl"`
-	ShortId    string    `bson:"shortId"`
+	ShortID    string    `bson:"shortId"`
 	CreateTime time.Time `bson:"createTime"`
 }
 
 type VisitTrack struct {
-	ShortId    string    `bson:"shortId"`
-	IpAddress  string    `bson:"visitIp"`
+	ShortID    string    `bson:"shortId"`
+	IPAddress  string    `bson:"visitIp"`
 	CreateTime time.Time `bson:"createTime"`
 }
 
@@ -43,7 +43,7 @@ func (ur *URLRepository) urlCollection() *mgo.Collection {
 
 func (ur *URLRepository) updateIndexes() error {
 	index := mgo.Index{
-		Key:        []string{fieldShortId},
+		Key:        []string{fieldShortID},
 		Unique:     true,  //only allow unique url-ids
 		DropDups:   false, //raise error if url-id is not unique
 		Background: false, //other connections cant use collection while index is under construction
@@ -70,10 +70,10 @@ func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
 	return record, nil
 }
 
-func (ur *URLRepository) LongURL(shortId string) (*URLRecord, error) {
+func (ur *URLRepository) LongURL(shortID string) (*URLRecord, error) {
 	var record URLRecord
 	err := ur.urlCollection().
-		Find(bson.M{fieldShortId: shortId}).
+		Find(bson.M{fieldShortID: shortID}).
 		One(&record)
 
 	if err != nil {

@@ -48,12 +48,12 @@ func sendURLResponse(w http.ResponseWriter, req *http.Request, urlResponse *urlR
 
 type shortenURLRequest struct {
 	LongURL   string `json:"longUrl"`
-	ShortId   string `json:"ShortId"`
+	ShortID   string `json:"ShortId"`
 	parsedURL *url.URL
 }
 
 func (s shortenURLRequest) UserDidSpecifyShortId() bool {
-	return len(s.ShortId) > 0
+	return len(s.ShortID) > 0
 }
 
 func parseShortenURLRequest(req *http.Request) (shortenURLRequest, err.Err) {
@@ -89,7 +89,7 @@ func parseShortenURLRequest(req *http.Request) (shortenURLRequest, err.Err) {
 
 	return shortenURLRequest{
 		LongURL:   shortenReq.LongURL,
-		ShortId:   shortenReq.ShortId,
+		ShortID:   shortenReq.ShortID,
 		parsedURL: rawURL,
 	}, nil
 }

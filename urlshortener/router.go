@@ -10,7 +10,7 @@ func Configure(app *a.App, r *mux.Router) {
 	c := NewController(NewService(
 		NewURLRepository(app.Db(), app.Logger()),
 		app.Logger(),
-		DefaultShortIdGenerator{},
+		DefaultShortIDGenerator{},
 	))
 
 	r.HandleFunc("/{shortUrl}", c.RedirectToLongURL).
