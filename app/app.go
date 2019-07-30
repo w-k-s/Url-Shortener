@@ -1,19 +1,22 @@
 package app
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/w-k-s/short-url/db"
 	"log"
 	"net/http"
-	"github.com/gorilla/mux"
+	"os"
+	"time"
 )
+
+type MiddlewareFunc mux.MiddlewareFunc
 
 type App struct {
 	logger     *log.Logger
 	db         *db.Db
-	server 	   *http.Server
+	server     *http.Server
 	router     *mux.Router
 	production bool
-	listeningAndServing bool
 }
 
 func Init() *App {
@@ -24,19 +27,18 @@ func Init() *App {
 		dbConnString = "mongodb://localhost:27017/shorturl"
 	}
 
-	db := db.New(connString)
+	db := db.New(dbConnString)
 
 	address := os.Getenv("ADDRESS")
 	if len(address) == 0 {
 		address = ":8080"
 	}
-	
+
 	router := mux.NewRouter()
 
-	server := createServer(, address)
+	server := createServer(router, address)
 
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-
 
 	app := &App{
 		logger,
@@ -44,28 +46,21 @@ func Init() *App {
 		server,
 		router,
 		production,
-		false,
 	}
 
-	log.Printf("Address: '%s'", address)
-	log.Printf("Connection String: %s", dbConnString)
-	log.Printf("Production: %v", production)
-	log.Printf("Init Complete. Running on %s", address)
+	logger.Printf("Address: '%s'", address)
+	logger.Printf("Connection String: %s", dbConnString)
+	logger.Printf("Production: %v", production)
+	logger.Print("Init Complete.")
 
 	return app
 }
 
-func (a *App) ListenAndServe(errchan chan error){
-	go func(c chan error) {
-		
-		a.listeningAndServing = true
-		err := a.server.ListenAndServe()
-		a.listeningAndServing = false
-		
-		if err != nil {
-			errchan <- err
-		}
-	}(errchan)
+func (a *App) ListenAndServe() error {
+	a.logger.Printf("Listening on address: %s", a.server.Addr)
+	err := a.server.ListenAndServe()
+
+	return err
 }
 
 func (a *App) Db() *db.Db {
@@ -84,12 +79,30 @@ func (a *App) Close() {
 	a.db.Close()
 }
 
+func (a *App) Middleware(middlewareFunc MiddlewareFunc) {
+	a.router.Use(mux.MiddlewareFunc(middlewareFunc))
+}
+
+func (a *App) Get(path string, f func(http.ResponseWriter, *http.Request)) {
+	a.logRegisteredRoute("GET", path)
+	a.router.HandleFunc(path, f).Methods("GET")
+}
+
+func (a *App) Post(path string, f func(http.ResponseWriter, *http.Request)) {
+	a.logRegisteredRoute("POST", path)
+	a.router.HandleFunc(path, f).Methods("POST")
+}
+
 func createServer(h http.Handler, address string) *http.Server {
 	return &http.Server{
-		Handler: h,
-		Addr:    address,
+		Handler:      h,
+		Addr:         address,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
+}
+
+func (a *App) logRegisteredRoute(method string, path string) {
+	a.logger.Printf("Adding Route: '%s %s'", method, path)
 }

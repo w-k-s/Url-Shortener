@@ -1,38 +1,41 @@
 package main
 
 import (
-	
-	"github.com/w-k-s/short-url/app"
+	a "github.com/w-k-s/short-url/app"
 	"github.com/w-k-s/short-url/logging"
-	"github.com/w-k-s/short-url/urlshortener"
+	u "github.com/w-k-s/short-url/urlshortener"
 	"log"
 	"net/http"
-	"os"
-	"time"
 )
 
-var app app.App
+var app *a.App
 
 func init() {
-	app = app.Init()
+	app = a.Init()
 }
 
 func main() {
 	defer app.Close()
 
-	logRepository := logging.NewLogRepository(app.Logger(), app.Db())
+	configureURLController()
+	configureLoggingMiddleware()
 
-	app.Middleware(loggingMiddleware(logRepository))
-
-	urlshortener.Configure(app, httpRouter)
-
-	errchan := make(chan error, 1)
-	app.ListenAndServe(errchan)
-	log.Fatalf("Error while configuring HTTP Server: %v", <-errchan)
+	log.Panic(app.ListenAndServe())
 }
 
-func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
+func configureURLController() {
+	urlRepo := u.NewURLRepository(app.Db(), app.Logger())
+	urlService := u.NewService(urlRepo, app.Logger(), u.DefaultShortIDGenerator{})
+	urlController := u.NewController(urlService)
+
+	app.Post("/urlshortener/v1/url", urlController.ShortenURL)
+	app.Get("/urlshortener/v1/url", urlController.GetLongURL)
+	app.Get("/{shortUrl}", urlController.RedirectToLongURL)
+}
+
+func configureLoggingMiddleware() {
+	logRepository := logging.NewLogRepository(app.Logger(), app.Db())
+	app.Middleware(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			sw := &logging.StatusWriter{ResponseWriter: w}
@@ -43,5 +46,5 @@ func loggingMiddleware(logRepository *logging.LogRepository) mux.MiddlewareFunc 
 
 			logRepository.LogResponse(sw, record)
 		})
-	}
+	})
 }
