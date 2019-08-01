@@ -2,7 +2,6 @@ package app
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/w-k-s/short-url/db"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +12,6 @@ type MiddlewareFunc mux.MiddlewareFunc
 
 type App struct {
 	logger     *log.Logger
-	db         *db.Db
 	server     *http.Server
 	router     *mux.Router
 	production bool
@@ -21,13 +19,6 @@ type App struct {
 
 func Init() *App {
 	production := os.Getenv("PROD") == "1"
-
-	dbConnString := os.Getenv("MONGO_ADDRESS")
-	if len(dbConnString) == 0 {
-		dbConnString = "mongodb://localhost:27017/shorturl"
-	}
-
-	db := db.New(dbConnString)
 
 	address := os.Getenv("ADDRESS")
 	if len(address) == 0 {
@@ -38,18 +29,16 @@ func Init() *App {
 
 	server := createServer(router, address)
 
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
+	logger := log.New(os.Stdout, "", log.Llongfile|log.Ldate|log.Ltime|log.LUTC)
 
 	app := &App{
 		logger,
-		db,
 		server,
 		router,
 		production,
 	}
 
 	logger.Printf("Address: '%s'", address)
-	logger.Printf("Connection String: %s", dbConnString)
 	logger.Printf("Production: %v", production)
 	logger.Print("Init Complete.")
 
@@ -63,20 +52,12 @@ func (a *App) ListenAndServe() error {
 	return err
 }
 
-func (a *App) Db() *db.Db {
-	return a.db
-}
-
 func (a *App) Logger() *log.Logger {
 	return a.logger
 }
 
 func (a *App) IsProd() bool {
 	return a.production
-}
-
-func (a *App) Close() {
-	a.db.Close()
 }
 
 func (a *App) Middleware(middlewareFunc MiddlewareFunc) {

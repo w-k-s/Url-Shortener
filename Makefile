@@ -5,7 +5,7 @@ fmt:
 	gofmt -w .
 
 run: fmt
-	go run *.go
+	DB_CONN_STRING=mongodb://localhost:27017/shorturl go run *.go
 
 test: fmt
 	go test ./...

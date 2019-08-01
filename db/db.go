@@ -12,6 +12,9 @@ type Db struct {
 }
 
 func New(connString string) *Db {
+	if len(connString) == 0 {
+		panic("Blank database connection string")
+	}
 	name := connString[strings.LastIndex(connString, "/")+1:]
 	session, err := mgo.Dial(connString)
 	if err != nil {

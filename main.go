@@ -2,20 +2,24 @@ package main
 
 import (
 	a "github.com/w-k-s/short-url/app"
+	d "github.com/w-k-s/short-url/db"
 	"github.com/w-k-s/short-url/logging"
 	u "github.com/w-k-s/short-url/urlshortener"
 	"log"
 	"net/http"
+	"os"
 )
 
 var app *a.App
+var db *d.Db
 
 func init() {
 	app = a.Init()
+	db = d.New(os.Getenv("DB_CONN_STRING"))
 }
 
 func main() {
-	defer app.Close()
+	defer db.Close()
 
 	configureURLController()
 	configureLoggingMiddleware()
@@ -24,7 +28,7 @@ func main() {
 }
 
 func configureURLController() {
-	urlRepo := u.NewURLRepository(app.Db(), app.Logger())
+	urlRepo := u.NewURLRepository(db, app.Logger())
 	urlService := u.NewService(urlRepo, app.Logger(), u.DefaultShortIDGenerator{})
 	urlController := u.NewController(urlService)
 
@@ -34,7 +38,7 @@ func configureURLController() {
 }
 
 func configureLoggingMiddleware() {
-	logRepository := logging.NewLogRepository(app.Logger(), app.Db())
+	logRepository := logging.NewLogRepository(app.Logger(), db)
 	app.Middleware(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

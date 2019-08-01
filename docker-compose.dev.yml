@@ -19,8 +19,7 @@ services:
     restart: always
     environment:
       ADDRESS: ":8080"
-      ADDRESS_TLS: ":4430"
-      MONGO_ADDRESS: "mongodb://datastore:27017/shorturl"
+      DB_CONN_STRING: "mongodb://datastore:27017/shorturl"
     ports:
       - 8080:8080
       - 4430:4430
