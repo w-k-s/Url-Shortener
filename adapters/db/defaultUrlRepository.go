@@ -1,7 +1,6 @@
-package urlshortener
+package db
 
 import (
-	database "github.com/w-k-s/short-url/db"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
@@ -25,23 +24,23 @@ type VisitTrack struct {
 	CreateTime time.Time `bson:"createTime"`
 }
 
-type URLRepository struct {
-	db     *database.Db
+type DefaultURLRepository struct {
+	db     *Db
 	logger *log.Logger
 }
 
-func NewURLRepository(db *database.Db, logger *log.Logger) *URLRepository {
+func NewURLRepository(db *Db, logger *log.Logger) *DefaultURLRepository {
 	return &URLRepository{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (ur *URLRepository) urlCollection() *mgo.Collection {
+func (ur *DefaultURLRepository) urlCollection() *mgo.Collection {
 	return ur.db.Instance().C(collNameURLs)
 }
 
-func (ur *URLRepository) updateIndexes() error {
+func (ur *DefaultURLRepository) updateIndexes() error {
 	index := mgo.Index{
 		Key:        []string{fieldShortID},
 		Unique:     true,  //only allow unique url-ids
@@ -53,7 +52,7 @@ func (ur *URLRepository) updateIndexes() error {
 	return ur.urlCollection().EnsureIndex(index)
 }
 
-func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
+func (ur *DefaultURLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
 	err := ur.urlCollection().
 		Insert(record)
 
@@ -70,7 +69,7 @@ func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
 	return record, nil
 }
 
-func (ur *URLRepository) LongURL(shortID string) (*URLRecord, error) {
+func (ur *DefaultURLRepository) LongURL(shortID string) (*URLRecord, error) {
 	var record URLRecord
 	err := ur.urlCollection().
 		Find(bson.M{fieldShortID: shortID}).
@@ -84,7 +83,7 @@ func (ur *URLRepository) LongURL(shortID string) (*URLRecord, error) {
 	return &record, nil
 }
 
-func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
+func (ur *DefaultURLRepository) ShortURL(longURL string) (*URLRecord, error) {
 	var record URLRecord
 	err := ur.urlCollection().
 		Find(bson.M{fieldLongURL: longURL}).
@@ -98,9 +97,14 @@ func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
 	return &record, nil
 }
 
-func (ur *URLRepository) logLastError(err error) {
+func (ur *DefaultURLRepository) logLastError(err error) {
 	if lastError, ok := err.(*mgo.LastError); ok {
-		ur.logger.Printf("Last Error. Code: %d, Message: %s (rows affected: %d)\n", lastError.Code, lastError.Err, lastError.N)
+		ur.logger.Printf(
+			"Last Error. Code: %d, Message: %s (rows affected: %d)\n", 
+			lastError.Code, 
+			lastError.Err, 
+			lastError.N,
+		)
 	}
 }
 

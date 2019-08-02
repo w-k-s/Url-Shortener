@@ -1,42 +1,37 @@
-package urlshortener
+package web
 
 import (
 	"encoding/json"
 	"fmt"
 	err "github.com/w-k-s/short-url/error"
+	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"net/http"
 	"net/url"
 )
 
 type Controller struct {
-	service *Service
+	shortenURLUseCase *useCase.shortenURLUseCase
 }
 
 func NewController(service *Service) *Controller {
 	return &Controller{
-		service,
+		shortenURLUseCase,
 	}
 }
 
 //--URLResponse
 
-const urlResponseCacheControlMaxAge = 172800 // 2 days
 
-type urlResponse struct {
-	LongURL  string `json:"longUrl"`
-	ShortURL string `json:"shortUrl"`
-}
-
-func sendURLResponse(w http.ResponseWriter, req *http.Request, urlResponse *urlResponse) {
+func sendResponse(w http.ResponseWriter, int status, body interface{}) {
 
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	encoder := json.NewEncoder(w)
-	err := encoder.Encode(urlResponse)
+	err := encoder.Encode(body)
 
 	if err != nil {
 		SendError(w, NewError(
-			URLResponseEncoding,
+			domain.URLResponseEncoding,
 			"Error encoding response",
 			map[string]string{"error": err.Error()},
 		))
@@ -46,82 +41,21 @@ func sendURLResponse(w http.ResponseWriter, req *http.Request, urlResponse *urlR
 
 //--Shorten URL
 
-type shortenURLRequest struct {
-	LongURL   string `json:"longUrl"`
-	ShortID   string `json:"ShortId"`
-	parsedURL *url.URL
-}
-
-func (s shortenURLRequest) UserDidSpecifyShortId() bool {
-	return len(s.ShortID) > 0
-}
-
-func parseShortenURLRequest(req *http.Request) (shortenURLRequest, err.Err) {
-
-	decoder := json.NewDecoder(req.Body)
-
-	var shortenReq shortenURLRequest
-	err := decoder.Decode(&shortenReq)
-	if err != nil {
-		return shortenURLRequest{}, NewError(
-			ShortenURLDecoding,
-			"JSON Body must include `longUrl`",
-			map[string]string{"error": err.Error()},
-		)
-	}
-
-	rawURL, err := url.Parse(shortenReq.LongURL)
-	if err != nil {
-		return shortenURLRequest{}, NewError(
-			ShortenURLValidation,
-			fmt.Sprintf("'%s' is not a valid url", shortenReq.LongURL),
-			map[string]string{"error": err.Error()},
-		)
-	}
-
-	if !rawURL.IsAbs() {
-		return shortenURLRequest{}, NewError(
-			ShortenURLValidation,
-			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortenReq.LongURL),
-			nil,
-		)
-	}
-
-	return shortenURLRequest{
-		LongURL:   shortenReq.LongURL,
-		ShortID:   shortenReq.ShortID,
-		parsedURL: rawURL,
-	}, nil
-}
-
 func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
 
-	scheme := req.URL.Scheme
-	if len(scheme) == 0 {
-		scheme = "https"
-	}
-
-	reqURL := &url.URL{
-		Scheme: scheme,
-		Host:   req.Host,
-	}
-
-	shortReq, appErr := parseShortenURLRequest(req)
+	shortenRequest, appErr := usecase.NewShortenURLRequest(req)
 	if appErr != nil {
 		SendError(w, appErr)
 		return
 	}
 
-	shortURL, appErr := c.service.ShortenURL(reqURL, shortReq)
+	shortenResponse, appErr := c.shortenURLUseCase.Execute(shortenRequest)
 	if appErr != nil {
 		SendError(w, appErr)
 		return
 	}
 
-	sendURLResponse(w, req, &urlResponse{
-		LongURL:  shortReq.parsedURL.String(),
-		ShortURL: shortURL.String(),
-	})
+	sendURLResponse(w, http.StatusOK, shortenResponse)
 }
 
 //--Shorten URL
