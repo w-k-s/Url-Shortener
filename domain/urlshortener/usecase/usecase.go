@@ -1,13 +1,13 @@
 package usecase
 
-import(
+import (
 	"github.com/w-k-s/short-url/domain"
 )
 
-interface Request{}
+type Request interface{}
 
-interface Response{}
+type Response interface{}
 
-interface UseCase{
-	Execute(request Request) (response Response, domain.Err)
+type UseCase interface {
+	Execute(request Request) (Response, domain.Err)
 }

@@ -3,10 +3,12 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/w-k-s/short-url/domain"
+	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"net/http"
 )
 
-func SendError(w http.ResponseWriter, e Err) {
+func SendError(w http.ResponseWriter, e domain.Err) {
 
 	encoder := json.NewEncoder(w)
 
@@ -19,25 +21,29 @@ func SendError(w http.ResponseWriter, e Err) {
 		"fields":  e.Fields(),
 	})
 	if err != nil {
-		http.Error(
-			w,
-			fmt.Sprintf("Error encoding %v. Cause: %s", e, err),
-			http.StatusInternalServerError,
-		)
+		SendEncodingError(w, e, err)
 	}
 }
 
-func httpStatusCode(e err.Code) int {
+func SendEncodingError(w http.ResponseWriter, encodee interface{}, err error) {
+	http.Error(
+		w,
+		fmt.Sprintf("Error encoding '%v'. Cause: %s", encodee, err),
+		http.StatusInternalServerError,
+	)
+}
+
+func httpStatusCode(e domain.Code) int {
 	switch e {
-	case ShortenURLValidation:
+	case usecase.ShortenURLValidation:
 		fallthrough
-	case RetrieveFullURLValidation:
+	case usecase.RetrieveFullURLValidation:
 		fallthrough
-	case ShortenURLShortIdInUse:
+	case usecase.ShortenURLShortIdInUse:
 		return http.StatusBadRequest
-	case RetrieveFullURLNotFound:
+	case usecase.RetrieveFullURLNotFound:
 		fallthrough
-	case RedirectionFullURLNotFound:
+	case usecase.RedirectionFullURLNotFound:
 		return http.StatusNotFound
 	default:
 		return http.StatusInternalServerError

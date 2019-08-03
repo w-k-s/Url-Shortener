@@ -1,20 +1,20 @@
 package main
 
 import (
-	a "github.com/w-k-s/short-url/app"
-	d "github.com/w-k-s/short-url/db"
-	"github.com/w-k-s/short-url/logging"
-	u "github.com/w-k-s/short-url/urlshortener"
+	d "github.com/w-k-s/short-url/adapters/db"
+	"github.com/w-k-s/short-url/adapters/logging"
+	"github.com/w-k-s/short-url/adapters/web"
+	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"log"
 	"net/http"
 	"os"
 )
 
-var app *a.App
+var app *web.App
 var db *d.Db
 
 func init() {
-	app = a.Init()
+	app = web.Init()
 	db = d.New(os.Getenv("DB_CONN_STRING"))
 }
 
@@ -28,9 +28,12 @@ func main() {
 }
 
 func configureURLController() {
-	urlRepo := u.NewURLRepository(db, app.Logger())
-	urlService := u.NewService(urlRepo, app.Logger(), u.DefaultShortIDGenerator{})
-	urlController := u.NewController(urlService)
+	urlRepo := d.NewURLRepository(db, app.Logger())
+
+	shortenURLUseCase := usecase.NewShortenURLUseCase(urlRepo, usecase.DefaultShortIDGenerator{}, app.Logger())
+	retrieveOriginalURLUseCase := usecase.NewRetrieveOriginalURLUseCase(urlRepo, app.Logger())
+
+	urlController := web.NewController(shortenURLUseCase, retrieveOriginalURLUseCase, app.Logger())
 
 	app.Post("/urlshortener/v1/url", urlController.ShortenURL)
 	app.Get("/urlshortener/v1/url", urlController.GetLongURL)

@@ -1,15 +1,17 @@
 package usecase
 
-import(
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/w-k-s/short-url/domain"
 	"net/http"
 	"net/url"
-	"github.com/w-k-s/short-url/domain"
 )
 
 type ShortenURLRequest struct {
-	longURL   string `json:"longUrl"`
-	shortID   string `json:"ShortId"`
-	parsedURL *url.URL
+	LongURL    string `json:"longUrl"`
+	ShortID    string `json:"ShortId"`
+	parsedURL  *url.URL
 	requestURL *url.URL
 }
 
@@ -29,7 +31,7 @@ func NewShortenURLRequest(req *http.Request) (ShortenURLRequest, domain.Err) {
 	var shortenReq ShortenURLRequest
 	err := decoder.Decode(&shortenReq)
 	if err != nil {
-		return ShortenURLRequest{}, domain.NewError(
+		return ShortenURLRequest{}, NewError(
 			ShortenURLDecoding,
 			"JSON Body must include `longUrl`",
 			map[string]string{"error": err.Error()},
@@ -38,7 +40,7 @@ func NewShortenURLRequest(req *http.Request) (ShortenURLRequest, domain.Err) {
 
 	rawURL, err := url.Parse(shortenReq.LongURL)
 	if err != nil {
-		return ShortenURLRequest{}, domain.NewError(
+		return ShortenURLRequest{}, NewError(
 			ShortenURLValidation,
 			fmt.Sprintf("'%s' is not a valid url", shortenReq.LongURL),
 			map[string]string{"error": err.Error()},
@@ -46,7 +48,7 @@ func NewShortenURLRequest(req *http.Request) (ShortenURLRequest, domain.Err) {
 	}
 
 	if !rawURL.IsAbs() {
-		return ShortenURLRequest{}, domain.NewError(
+		return ShortenURLRequest{}, NewError(
 			ShortenURLValidation,
 			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortenReq.LongURL),
 			nil,
@@ -54,9 +56,9 @@ func NewShortenURLRequest(req *http.Request) (ShortenURLRequest, domain.Err) {
 	}
 
 	return ShortenURLRequest{
-		longURL:   shortenReq.LongURL,
-		shortID:   shortenReq.ShortID,
-		parsedURL: rawURL,
+		LongURL:    shortenReq.LongURL,
+		ShortID:    shortenReq.ShortID,
+		parsedURL:  rawURL,
 		requestURL: requestURL,
 	}, nil
 }
@@ -65,18 +67,10 @@ func (s ShortenURLRequest) UserDidSpecifyShortId() bool {
 	return len(s.ShortID) > 0
 }
 
-func (s ShortenURLRequest) LongURL() string {
-	return s.longURL
-}
-
-func (s ShortenURLRequest) ShortID() string{
-	return s.shortID
-}
-
-func (s ShortenURLRequest) ParsedURL() *url.URL{
+func (s ShortenURLRequest) ParsedURL() *url.URL {
 	return s.parsedURL
 }
 
-func (a ShortenURLRequest) RequestURL() *url.URL{
+func (s ShortenURLRequest) RequestURL() *url.URL {
 	return s.requestURL
 }

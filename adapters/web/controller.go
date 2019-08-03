@@ -2,40 +2,24 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
-	err "github.com/w-k-s/short-url/error"
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
+	"log"
 	"net/http"
-	"net/url"
 )
 
 type Controller struct {
-	shortenURLUseCase *useCase.shortenURLUseCase
+	shortenURLUseCase          *usecase.ShortenURLUseCase
+	retrieveOriginalURLUseCase *usecase.RetrieveOriginalURLUseCase
+	logger                     *log.Logger
 }
 
-func NewController(service *Service) *Controller {
+func NewController(shortenURLUseCase *usecase.ShortenURLUseCase,
+	retrieveOriginalURLUseCase *usecase.RetrieveOriginalURLUseCase,
+	logger *log.Logger) *Controller {
 	return &Controller{
 		shortenURLUseCase,
-	}
-}
-
-//--URLResponse
-
-
-func sendResponse(w http.ResponseWriter, int status, body interface{}) {
-
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(status)
-	encoder := json.NewEncoder(w)
-	err := encoder.Encode(body)
-
-	if err != nil {
-		SendError(w, NewError(
-			domain.URLResponseEncoding,
-			"Error encoding response",
-			map[string]string{"error": err.Error()},
-		))
-		return
+		retrieveOriginalURLUseCase,
+		logger,
 	}
 }
 
@@ -43,87 +27,67 @@ func sendResponse(w http.ResponseWriter, int status, body interface{}) {
 
 func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
 
-	shortenRequest, appErr := usecase.NewShortenURLRequest(req)
-	if appErr != nil {
-		SendError(w, appErr)
+	shortenRequest, err := usecase.NewShortenURLRequest(req)
+	if err != nil {
+		SendError(w, err)
 		return
 	}
 
-	shortenResponse, appErr := c.shortenURLUseCase.Execute(shortenRequest)
-	if appErr != nil {
-		SendError(w, appErr)
+	shortenResponse, err := c.shortenURLUseCase.Execute(shortenRequest)
+	if err != nil {
+		SendError(w, err)
 		return
 	}
 
-	sendURLResponse(w, http.StatusOK, shortenResponse)
+	sendResponse(w, http.StatusOK, shortenResponse)
 }
 
 //--Shorten URL
 
-func parseRetrieveFullURLRequest(req *http.Request) (*url.URL, err.Err) {
-
-	shortURLReq := req.FormValue("shortUrl")
-
-	if len(shortURLReq) == 0 {
-		return nil, NewError(
-			RetrieveFullURLValidation,
-			"`shortUrl` is required",
-			nil,
-		)
-	}
-
-	shortURL, err := url.Parse(shortURLReq)
-	if err != nil {
-		return nil, NewError(
-			RetrieveFullURLValidation,
-			fmt.Sprintf("'%s' is not a valid url", shortURL),
-			map[string]string{"error": err.Error()},
-		)
-	}
-
-	if !shortURL.IsAbs() {
-		return nil, NewError(
-			RetrieveFullURLValidation,
-			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortURL),
-			nil,
-		)
-	}
-
-	return shortURL, nil
-}
-
 func (c *Controller) GetLongURL(w http.ResponseWriter, req *http.Request) {
 
-	shortURL, err := parseRetrieveFullURLRequest(req)
+	retrieveRequest, err := usecase.NewRetrieveOriginalURLRequest(req)
 	if err != nil {
 		SendError(w, err)
 		return
 	}
 
-	longURL, err := c.service.GetLongURL(shortURL)
+	retrieveResponse, err := c.retrieveOriginalURLUseCase.Execute(retrieveRequest)
 	if err != nil {
 		SendError(w, err)
 		return
 	}
 
-	sendURLResponse(w, req, &urlResponse{
-		LongURL:  longURL.String(),
-		ShortURL: shortURL.String(),
-	})
+	sendResponse(w, http.StatusOK, retrieveResponse)
 }
 
 //--Redirect
 
 func (c *Controller) RedirectToLongURL(w http.ResponseWriter, req *http.Request) {
 
-	longURL, err := c.service.GetLongURL(req.URL)
+	redirectRequest := usecase.RedirectShortURLRequest(req.URL)
 
-	fmt.Printf("redirecting to %s\n", longURL)
-
+	redirectResponse, err := c.retrieveOriginalURLUseCase.Execute(redirectRequest)
 	if err != nil {
 		SendError(w, err)
 		return
 	}
 
-	http.Redirect(w, req, longURL.String(), http.StatusSeeOther)
+	c.logger.Printf("redirecting to %s\n", redirectResponse.LongURL)
+	http.Redirect(w, req, redirectResponse.LongURL, http.StatusSeeOther)
+}
+
+//--URLResponse
+
+func sendResponse(w http.ResponseWriter, status int, body interface{}) {
+
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(status)
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(body)
+
+	if err != nil {
+		SendEncodingError(w, body, err)
+		return
+	}
 }

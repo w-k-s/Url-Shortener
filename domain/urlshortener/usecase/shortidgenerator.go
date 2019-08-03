@@ -1,4 +1,4 @@
-package urlshortener
+package usecase
 
 import (
 	"github.com/w-k-s/basenconv"

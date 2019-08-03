@@ -1,6 +1,6 @@
 package usecase
 
-type ShortenURLResponse struct {
+type RetrieveOriginalURLResponse struct {
 	LongURL  string `json:"longUrl"`
 	ShortURL string `json:"shortUrl"`
 }

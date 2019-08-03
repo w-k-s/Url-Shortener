@@ -1,13 +1,20 @@
 package usecase
 
-import(
+import (
+	"fmt"
+	"github.com/w-k-s/short-url/domain"
 	"net/http"
 	"net/url"
-	"github.com/w-k-s/short-url/domain"
 )
 
 type RetrieveOriginalURLRequest struct {
-	shortURL   *url.URL
+	shortURL *url.URL
+}
+
+func RedirectShortURLRequest(shortURL *url.URL) RetrieveOriginalURLRequest {
+	return RetrieveOriginalURLRequest{
+		shortURL,
+	}
 }
 
 func NewRetrieveOriginalURLRequest(req *http.Request) (RetrieveOriginalURLRequest, domain.Err) {
@@ -16,7 +23,7 @@ func NewRetrieveOriginalURLRequest(req *http.Request) (RetrieveOriginalURLReques
 
 	if len(shortURLReq) == 0 {
 		return RetrieveOriginalURLRequest{}, NewError(
-			domain.RetrieveFullURLValidation,
+			RetrieveFullURLValidation,
 			"`shortUrl` is required",
 			nil,
 		)
@@ -25,7 +32,7 @@ func NewRetrieveOriginalURLRequest(req *http.Request) (RetrieveOriginalURLReques
 	shortURL, err := url.Parse(shortURLReq)
 	if err != nil {
 		return RetrieveOriginalURLRequest{}, NewError(
-			domain.RetrieveFullURLValidation,
+			RetrieveFullURLValidation,
 			fmt.Sprintf("'%s' is not a valid url", shortURL),
 			map[string]string{"error": err.Error()},
 		)
@@ -33,11 +40,15 @@ func NewRetrieveOriginalURLRequest(req *http.Request) (RetrieveOriginalURLReques
 
 	if !shortURL.IsAbs() {
 		return RetrieveOriginalURLRequest{}, NewError(
-			domain.RetrieveFullURLValidation,
+			RetrieveFullURLValidation,
 			fmt.Sprintf("'%s' is a relative url. Absolute urls are expected", shortURL),
 			nil,
 		)
 	}
 
 	return RetrieveOriginalURLRequest{shortURL}, nil
+}
+
+func (r RetrieveOriginalURLRequest) ShortURL() *url.URL {
+	return r.shortURL
 }

@@ -1,4 +1,4 @@
-package error
+package domain
 
 import (
 	"github.com/stretchr/testify/assert"

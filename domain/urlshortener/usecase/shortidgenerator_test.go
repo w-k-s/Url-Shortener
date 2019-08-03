@@ -1,4 +1,4 @@
-package urlshortener
+package usecase
 
 import (
 	"github.com/stretchr/testify/assert"
