@@ -47,9 +47,7 @@ func Init() *App {
 
 func (a *App) ListenAndServe() error {
 	a.logger.Printf("Listening on address: %s", a.server.Addr)
-	err := a.server.ListenAndServe()
-
-	return err
+	return a.server.ListenAndServe()
 }
 
 func (a *App) Logger() *log.Logger {

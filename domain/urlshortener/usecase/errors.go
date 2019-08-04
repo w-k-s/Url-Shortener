@@ -66,7 +66,7 @@ func domainString(e domain.Code) string {
 		return "urlResponse.encoding"
 
 	default:
-		return fmt.Sprintf("Unknown Domain (%d)", e)
+		return panic(fmt.Sprintf("Unknown Domain (%d)", e))
 	}
 }
 

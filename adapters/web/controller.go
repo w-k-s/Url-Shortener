@@ -1,7 +1,6 @@
 package web
 
 import (
-	"encoding/json"
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"log"
 	"net/http"
@@ -29,13 +28,13 @@ func (c *Controller) ShortenURL(w http.ResponseWriter, req *http.Request) {
 
 	shortenRequest, err := usecase.NewShortenURLRequest(req)
 	if err != nil {
-		SendError(w, err)
+		sendError(w, err)
 		return
 	}
 
 	shortenResponse, err := c.shortenURLUseCase.Execute(shortenRequest)
 	if err != nil {
-		SendError(w, err)
+		sendError(w, err)
 		return
 	}
 
@@ -48,13 +47,13 @@ func (c *Controller) GetLongURL(w http.ResponseWriter, req *http.Request) {
 
 	retrieveRequest, err := usecase.NewRetrieveOriginalURLRequest(req)
 	if err != nil {
-		SendError(w, err)
+		sendError(w, err)
 		return
 	}
 
 	retrieveResponse, err := c.retrieveOriginalURLUseCase.Execute(retrieveRequest)
 	if err != nil {
-		SendError(w, err)
+		sendError(w, err)
 		return
 	}
 
@@ -69,25 +68,10 @@ func (c *Controller) RedirectToLongURL(w http.ResponseWriter, req *http.Request)
 
 	redirectResponse, err := c.retrieveOriginalURLUseCase.Execute(redirectRequest)
 	if err != nil {
-		SendError(w, err)
+		sendError(w, err)
 		return
 	}
 
 	c.logger.Printf("redirecting to %s\n", redirectResponse.LongURL)
 	http.Redirect(w, req, redirectResponse.LongURL, http.StatusSeeOther)
-}
-
-//--URLResponse
-
-func sendResponse(w http.ResponseWriter, status int, body interface{}) {
-
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(status)
-	encoder := json.NewEncoder(w)
-	err := encoder.Encode(body)
-
-	if err != nil {
-		SendEncodingError(w, body, err)
-		return
-	}
 }

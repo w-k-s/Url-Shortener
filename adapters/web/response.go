@@ -8,7 +8,20 @@ import (
 	"net/http"
 )
 
-func SendError(w http.ResponseWriter, e domain.Err) {
+func sendResponse(w http.ResponseWriter, status int, body interface{}) {
+
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(status)
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(body)
+
+	if err != nil {
+		sendEncodingError(w, body, err)
+		return
+	}
+}
+
+func sendError(w http.ResponseWriter, e domain.Err) {
 
 	encoder := json.NewEncoder(w)
 
@@ -21,16 +34,8 @@ func SendError(w http.ResponseWriter, e domain.Err) {
 		"fields":  e.Fields(),
 	})
 	if err != nil {
-		SendEncodingError(w, e, err)
+		sendEncodingError(w, e, err)
 	}
-}
-
-func SendEncodingError(w http.ResponseWriter, encodee interface{}, err error) {
-	http.Error(
-		w,
-		fmt.Sprintf("Error encoding '%v'. Cause: %s", encodee, err),
-		http.StatusInternalServerError,
-	)
 }
 
 func httpStatusCode(e domain.Code) int {
@@ -48,4 +53,12 @@ func httpStatusCode(e domain.Code) int {
 	default:
 		return http.StatusInternalServerError
 	}
+}
+
+func sendEncodingError(w http.ResponseWriter, encodee interface{}, err error) {
+	http.Error(
+		w,
+		fmt.Sprintf("Error encoding '%v'. Cause: %s", encodee, err),
+		http.StatusInternalServerError,
+	)
 }
