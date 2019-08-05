@@ -2,7 +2,7 @@ package web
 
 import (
 	"encoding/json"
-	err "github.com/w-k-s/short-url/error"
+	domain "github.com/w-k-s/short-url/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,14 +12,14 @@ func TestSendError(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	inputErr := err.NewError(
-		10000,
+	inputErr := domain.NewError(
+		10300,
 		"test",
 		"message",
 		map[string]string{"FIELD": "VALUE"},
 	)
 
-	err.SendError(w, http.StatusBadRequest, inputErr)
+	sendError(w, inputErr)
 
 	resp := w.Result()
 
@@ -31,7 +31,7 @@ func TestSendError(t *testing.T) {
 	decoder := json.NewDecoder(resp.Body)
 	decoder.Decode(&outputErr)
 
-	outCode := err.Code(outputErr["code"].(float64))
+	outCode := domain.Code(outputErr["code"].(float64))
 	outDomain := outputErr["domain"].(string)
 	outError := outputErr["message"].(string)
 	outFields := outputErr["fields"].(map[string]interface{})

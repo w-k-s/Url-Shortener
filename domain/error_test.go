@@ -2,12 +2,11 @@ package domain
 
 import (
 	"github.com/stretchr/testify/assert"
-	err "github.com/w-k-s/short-url/error"
 	"reflect"
 	"testing"
 )
 
-const code err.Code = 10000
+const code Code = 10000
 const domain string = "domain"
 const message string = "message"
 
@@ -15,7 +14,7 @@ func TestNewError(t *testing.T) {
 
 	fields := map[string]string{"key": "value"}
 
-	err := err.NewError(
+	err := NewError(
 		code,
 		domain,
 		message,

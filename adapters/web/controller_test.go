@@ -3,11 +3,13 @@ package web
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	_ "fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/w-k-s/short-url/db"
-	err "github.com/w-k-s/short-url/error"
+	"github.com/w-k-s/short-url/adapters/db"
+	"github.com/w-k-s/short-url/domain"
+	u "github.com/w-k-s/short-url/domain/urlshortener"
+	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http"
@@ -17,14 +19,27 @@ import (
 	"time"
 )
 
+const savedShortID = "shrt"
+const savedLongURL = "http://www.example.com"
+const savedShortURL = "http://small.ml/" + savedShortID
+
+type MockShortIDGenerator struct {
+	ShortID string
+}
+
+func (m MockShortIDGenerator) Generate(d usecase.ShortIDLength) string {
+	return m.ShortID
+}
+
 type ControllerSuite struct {
 	suite.Suite
-	db         *db.Db
-	urlRepo    *URLRepository
-	record     *URLRecord
-	generator  *MockShortIDGenerator
-	service    *Service
-	controller *Controller
+	db                         *db.Db
+	urlRepo                    *db.DefaultURLRepository
+	record                     *u.URLRecord
+	generator                  *MockShortIDGenerator
+	shortenURLUseCase          *usecase.ShortenURLUseCase
+	retrieveOriginalURLUseCase *usecase.RetrieveOriginalURLUseCase
+	controller                 *Controller
 }
 
 func (suite *ControllerSuite) SetupTest() {
@@ -33,9 +48,10 @@ func (suite *ControllerSuite) SetupTest() {
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.generator = &MockShortIDGenerator{}
 
-	suite.urlRepo = NewURLRepository(suite.db, logger)
-	suite.service = NewService(suite.urlRepo, logger, suite.generator)
-	suite.controller = NewController(suite.service)
+	suite.urlRepo = db.NewURLRepository(suite.db, logger)
+	suite.shortenURLUseCase = usecase.NewShortenURLUseCase(suite.urlRepo, suite.generator, logger)
+	suite.retrieveOriginalURLUseCase = usecase.NewRetrieveOriginalURLUseCase(suite.urlRepo, logger)
+	suite.controller = NewController(suite.shortenURLUseCase, suite.retrieveOriginalURLUseCase, logger)
 
 	suite.db.Instance().
 		C("urls").
@@ -45,7 +61,7 @@ func (suite *ControllerSuite) SetupTest() {
 		C("visits").
 		RemoveAll(bson.M{})
 
-	suite.record = &URLRecord{
+	suite.record = &u.URLRecord{
 		savedLongURL,
 		savedShortID,
 		time.Now(),
@@ -72,8 +88,8 @@ func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyDoesNotContainLongUR
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(ShortenURLValidation), error.Code(), "Wrong error code. Expected: %d, got: %d", ShortenURLValidation, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 }
 
 func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyDoesNotContainValidURL() {
@@ -83,8 +99,8 @@ func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyDoesNotContainValidU
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(ShortenURLValidation), error.Code(), "Wrong error code. Expected: %d, got: %d", ShortenURLValidation, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 
 }
 
@@ -95,8 +111,8 @@ func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyContainsRelativeURL(
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(ShortenURLValidation), error.Code(), "Wrong error code. Expected: %d, got: %d", ShortenURLValidation, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 
 }
 
@@ -135,8 +151,8 @@ func (suite *ControllerSuite) TestRedirectFailureResponseWhenShortURLDoesNotExis
 
 	assert.Equal(suite.T(), resp.StatusCode, http.StatusNotFound)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(RetrieveFullURLNotFound), error.Code(), "Wrong error code. Expected: %d, got: %d", RetrieveFullURLNotFound, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLNotFound), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLNotFound, err.Code())
 
 }
 
@@ -146,8 +162,8 @@ func (suite *ControllerSuite) TestGetLongURLRequestWhenRequestQueryDoesNotContai
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(RetrieveFullURLValidation), error.Code(), "Wrong error code. Expected: %d, got: %d", RetrieveFullURLValidation, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLValidation, err.Code())
 
 }
 
@@ -157,8 +173,8 @@ func (suite *ControllerSuite) TestGetLongURLRequestWhenRequestQueryContainInvali
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(RetrieveFullURLValidation), error.Code(), "Wrong error code. Expected: %d, got: %d", RetrieveFullURLValidation, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLValidation, err.Code())
 
 }
 
@@ -168,8 +184,8 @@ func (suite *ControllerSuite) TestGetLongURLRequestWhenRequestQueryContainRelati
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(RetrieveFullURLValidation), error.Code(), "Wrong error code. Expected: %d, got: %d", RetrieveFullURLValidation, error.Code())
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLValidation, err.Code())
 
 }
 
@@ -179,8 +195,8 @@ func (suite *ControllerSuite) TestGetLongURLRequestWhenLongURLNotFound() {
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
-	error := getErrOrNil(w)
-	assert.Equal(suite.T(), err.Code(RetrieveFullURLNotFound), error.Code(), "Wrong error code. Expected: %d, got: %d", RetrieveFullURLNotFound, error)
+	err := getErrOrNil(w)
+	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLNotFound), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLNotFound, err.Code())
 
 }
 
@@ -196,35 +212,16 @@ func getJSONDictionaryOrNil(w *httptest.ResponseRecorder) map[string]interface{}
 	return JSONDictionary
 }
 
-func getErrOrNil(w *httptest.ResponseRecorder) err.Err {
+func getErrOrNil(w *httptest.ResponseRecorder) domain.Err {
 	JSONDictionary := getJSONDictionaryOrNil(w)
 	if JSONDictionary == nil {
 		return nil
 	}
 
-	var ok bool
-	var code float64
-	var domain string
-	var message string
-	var fields map[string]string
+	code := int(JSONDictionary["code"].(float64))
+	domainString := JSONDictionary["domain"].(string)
+	message := JSONDictionary["message"].(string)
+	fields, _ := JSONDictionary["fields"].(map[string]string)
 
-	fmt.Printf("JSONDictionary -> %v\n", JSONDictionary)
-
-	if code, ok = JSONDictionary["code"].(float64); !ok {
-		fmt.Printf("getErrOrNil -> couldnt map `code\n`")
-	}
-
-	if domain, ok = JSONDictionary["domain"].(string); !ok {
-		fmt.Printf("getErrOrNil -> couldnt map `domain`\n")
-	}
-
-	if message, ok = JSONDictionary["message"].(string); !ok {
-		fmt.Printf("getErrOrNil -> couldnt map `message`\n")
-	}
-
-	if fields, ok = JSONDictionary["fields"].(map[string]string); !ok {
-		fmt.Printf("getErrOrNil -> couldnt map `fields`\n")
-	}
-
-	return err.NewError(err.Code(int(code)), domain, message, fields)
+	return domain.NewError(domain.Code(code), domainString, message, fields)
 }
