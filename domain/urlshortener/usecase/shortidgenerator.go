@@ -17,10 +17,10 @@ type ShortIDLength int
 
 const bias int = 10000
 const (
-	VERY_SHORT ShortIDLength = 2 * 10000 // bias * 3
-	SHORT      ShortIDLength = 10000     // bias
-	MEDIUM     ShortIDLength = 10000 / 4 // bias/4
-	VERY_LONG  ShortIDLength = 1
+	VeryShort ShortIDLength = 2 * 10000 // bias * 3
+	Short     ShortIDLength = 10000     // bias
+	Medium    ShortIDLength = 10000 / 4 // bias/4
+	VeryLong  ShortIDLength = 1
 )
 
 type ShortIDGenerator interface {

@@ -11,7 +11,7 @@ const (
 	ShortenURLValidation                  = 10300
 	ShortenURLFailedToSave                = 10400
 	ShortenURLTrackVisitError             = 10401
-	ShortenURLShortIdInUse                = 10402
+	ShortenURLShortIDInUse                = 10402
 	ShortenURLUndocumented                = 10999
 
 	//Retrieving Long Url
@@ -38,7 +38,7 @@ func domainString(e domain.Code) string {
 		return "shortenUrl.validation"
 	case ShortenURLFailedToSave:
 		return "shortenUrl.failedToSave"
-	case ShortenURLShortIdInUse:
+	case ShortenURLShortIDInUse:
 		return "shortenUrl.shortIdInUse"
 	case ShortenURLUndocumented:
 		return "shortenUrl.undocumented"

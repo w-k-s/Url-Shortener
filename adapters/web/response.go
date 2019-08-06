@@ -44,7 +44,7 @@ func httpStatusCode(e domain.Code) int {
 		fallthrough
 	case usecase.RetrieveFullURLValidation:
 		fallthrough
-	case usecase.ShortenURLShortIdInUse:
+	case usecase.ShortenURLShortIDInUse:
 		return http.StatusBadRequest
 	case usecase.RetrieveFullURLNotFound:
 		fallthrough

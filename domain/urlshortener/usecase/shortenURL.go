@@ -40,7 +40,7 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 		})
 		if err != nil {
 			return ShortenURLResponse{}, NewError(
-				ShortenURLShortIdInUse,
+				ShortenURLShortIDInUse,
 				fmt.Sprintf("Can not save shortId '%s'; possibly in-use", shortReq.ShortID),
 				map[string]string{"error": err.Error()},
 			)
@@ -48,7 +48,7 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 		return buildShortenedURLResponse(shortReq, newRecord), nil
 	}
 
-	shortIDLengths := []ShortIDLength{VERY_SHORT, SHORT, MEDIUM, VERY_LONG}
+	shortIDLengths := []ShortIDLength{VeryShort, Short, Medium, VeryLong}
 	inserted := false
 	var newRecord *u.URLRecord
 	var err error

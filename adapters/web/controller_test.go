@@ -62,9 +62,9 @@ func (suite *ControllerSuite) SetupTest() {
 		RemoveAll(bson.M{})
 
 	suite.record = &u.URLRecord{
-		savedLongURL,
-		savedShortID,
-		time.Now(),
+		LongURL:    savedLongURL,
+		ShortID:    savedShortID,
+		CreateTime: time.Now(),
 	}
 
 	_, err := suite.urlRepo.SaveRecord(suite.record)
