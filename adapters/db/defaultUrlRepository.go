@@ -1,11 +1,10 @@
-package urlshortener
+package db
 
 import (
-	database "github.com/w-k-s/short-url/db"
+	u "github.com/w-k-s/short-url/domain/urlshortener"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
-	"time"
 )
 
 const collNameURLs = "urls"
@@ -13,35 +12,23 @@ const collNameURLs = "urls"
 const fieldShortID = "shortId"
 const fieldLongURL = "longUrl"
 
-type URLRecord struct {
-	LongURL    string    `bson:"longUrl"`
-	ShortID    string    `bson:"shortId"`
-	CreateTime time.Time `bson:"createTime"`
-}
-
-type VisitTrack struct {
-	ShortID    string    `bson:"shortId"`
-	IPAddress  string    `bson:"visitIp"`
-	CreateTime time.Time `bson:"createTime"`
-}
-
-type URLRepository struct {
-	db     *database.Db
+type DefaultURLRepository struct {
+	db     *Db
 	logger *log.Logger
 }
 
-func NewURLRepository(db *database.Db, logger *log.Logger) *URLRepository {
-	return &URLRepository{
+func NewURLRepository(db *Db, logger *log.Logger) *DefaultURLRepository {
+	return &DefaultURLRepository{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (ur *URLRepository) urlCollection() *mgo.Collection {
+func (ur *DefaultURLRepository) urlCollection() *mgo.Collection {
 	return ur.db.Instance().C(collNameURLs)
 }
 
-func (ur *URLRepository) updateIndexes() error {
+func (ur *DefaultURLRepository) updateIndexes() error {
 	index := mgo.Index{
 		Key:        []string{fieldShortID},
 		Unique:     true,  //only allow unique url-ids
@@ -53,7 +40,7 @@ func (ur *URLRepository) updateIndexes() error {
 	return ur.urlCollection().EnsureIndex(index)
 }
 
-func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
+func (ur *DefaultURLRepository) SaveRecord(record *u.URLRecord) (*u.URLRecord, error) {
 	err := ur.urlCollection().
 		Insert(record)
 
@@ -70,8 +57,8 @@ func (ur *URLRepository) SaveRecord(record *URLRecord) (*URLRecord, error) {
 	return record, nil
 }
 
-func (ur *URLRepository) LongURL(shortID string) (*URLRecord, error) {
-	var record URLRecord
+func (ur *DefaultURLRepository) LongURL(shortID string) (*u.URLRecord, error) {
+	var record u.URLRecord
 	err := ur.urlCollection().
 		Find(bson.M{fieldShortID: shortID}).
 		One(&record)
@@ -84,8 +71,8 @@ func (ur *URLRepository) LongURL(shortID string) (*URLRecord, error) {
 	return &record, nil
 }
 
-func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
-	var record URLRecord
+func (ur *DefaultURLRepository) ShortURL(longURL string) (*u.URLRecord, error) {
+	var record u.URLRecord
 	err := ur.urlCollection().
 		Find(bson.M{fieldLongURL: longURL}).
 		One(&record)
@@ -96,12 +83,6 @@ func (ur *URLRepository) ShortURL(longURL string) (*URLRecord, error) {
 	}
 
 	return &record, nil
-}
-
-func (ur *URLRepository) logLastError(err error) {
-	if lastError, ok := err.(*mgo.LastError); ok {
-		ur.logger.Printf("Last Error. Code: %d, Message: %s (rows affected: %d)\n", lastError.Code, lastError.Err, lastError.N)
-	}
 }
 
 func isConnectionError(err error) bool {
