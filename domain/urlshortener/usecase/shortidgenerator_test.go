@@ -1,4 +1,4 @@
-package urlshortener
+package usecase
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -12,10 +12,10 @@ func TestGenerator(t *testing.T) {
 
 		gen := DefaultShortIDGenerator{}
 		shortIDs := []string{
-			gen.Generate(VERY_SHORT),
-			gen.Generate(SHORT),
-			gen.Generate(MEDIUM),
-			gen.Generate(VERY_LONG),
+			gen.Generate(VeryShort),
+			gen.Generate(Short),
+			gen.Generate(Medium),
+			gen.Generate(VeryLong),
 		}
 
 		compareLengths := func(i, j int) bool {

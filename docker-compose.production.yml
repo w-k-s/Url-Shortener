@@ -23,7 +23,6 @@ services:
       - .env
     environment:
       ADDRESS: ":8080"
-      ADDRESS_TLS: ":4430"
       PROD: "1"
     ports:
       - 8080:8080

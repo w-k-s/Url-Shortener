@@ -1,19 +1,18 @@
-package urlshortener
+package usecase
 
 import (
 	"fmt"
-	err "github.com/w-k-s/short-url/error"
-	"net/http"
+	"github.com/w-k-s/short-url/domain"
 )
 
 const (
 	//Shortening URL
-	ShortenURLDecoding        err.Code = 10200
-	ShortenURLValidation               = 10300
-	ShortenURLFailedToSave             = 10400
-	ShortenURLTrackVisitError          = 10401
-	ShortenURLShortIdInUse             = 10402
-	ShortenURLUndocumented             = 10999
+	ShortenURLDecoding        domain.Code = 10200
+	ShortenURLValidation                  = 10300
+	ShortenURLFailedToSave                = 10400
+	ShortenURLTrackVisitError             = 10401
+	ShortenURLShortIDInUse                = 10402
+	ShortenURLUndocumented                = 10999
 
 	//Retrieving Long Url
 	RetrieveFullURLDecoding     = 11200
@@ -30,7 +29,7 @@ const (
 	URLResponseEncoding = 13000
 )
 
-func domain(e err.Code) string {
+func domainString(e domain.Code) string {
 	switch e {
 	//Shortening URL
 	case ShortenURLDecoding:
@@ -39,7 +38,7 @@ func domain(e err.Code) string {
 		return "shortenUrl.validation"
 	case ShortenURLFailedToSave:
 		return "shortenUrl.failedToSave"
-	case ShortenURLShortIdInUse:
+	case ShortenURLShortIDInUse:
 		return "shortenUrl.shortIdInUse"
 	case ShortenURLUndocumented:
 		return "shortenUrl.undocumented"
@@ -67,36 +66,15 @@ func domain(e err.Code) string {
 		return "urlResponse.encoding"
 
 	default:
-		return fmt.Sprintf("Unknown Domain (%d)", e)
+		panic(fmt.Sprintf("Unknown Domain (%d)", e))
 	}
 }
 
-func NewError(code err.Code, message string, fields map[string]string) *err.Error {
-	return err.NewError(
+func NewError(code domain.Code, message string, fields map[string]string) *domain.Error {
+	return domain.NewError(
 		code,
-		domain(code),
+		domainString(code),
 		message,
 		fields,
 	)
-}
-
-func SendError(w http.ResponseWriter, e err.Err) {
-	err.SendError(w, httpStatusCode(e.Code()), e)
-}
-
-func httpStatusCode(e err.Code) int {
-	switch e {
-	case ShortenURLValidation:
-		fallthrough
-	case RetrieveFullURLValidation:
-		fallthrough
-	case ShortenURLShortIdInUse:
-		return http.StatusBadRequest
-	case RetrieveFullURLNotFound:
-		fallthrough
-	case RedirectionFullURLNotFound:
-		return http.StatusNotFound
-	default:
-		return http.StatusInternalServerError
-	}
 }

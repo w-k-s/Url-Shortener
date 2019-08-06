@@ -3,7 +3,7 @@ package logging
 import (
 	"bytes"
 	"fmt"
-	database "github.com/w-k-s/short-url/db"
+	database "github.com/w-k-s/short-url/adapters/db"
 	"gopkg.in/mgo.v2"
 	"io/ioutil"
 	"log"
