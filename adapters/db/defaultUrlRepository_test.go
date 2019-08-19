@@ -28,21 +28,19 @@ func (suite *URLRepositoryTestSuite) SetupTest() {
 	suite.db = New("mongodb://localhost:27017/shorturl_test")
 	suite.urlRepo = NewURLRepository(suite.db, logger)
 
-	suite.record = &u.URLRecord{
-		"http://www.example.com",
-		"shrt",
-		time.Now(),
-	}
-}
-
-func (suite *URLRepositoryTestSuite) TearDownTest() {
-
 	suite.db.Instance().
 		C("urls").
 		RemoveAll(bson.M{})
 
-	defer suite.db.Close()
+	suite.record = &u.URLRecord{
+		LongURL:    "http://www.example.com",
+		ShortID:    "shrt",
+		CreateTime: time.Now(),
+	}
+}
 
+func (suite *URLRepositoryTestSuite) TearDownTest() {
+	defer suite.db.Close()
 }
 
 func (suite *URLRepositoryTestSuite) TestSaveRecordSucccessful() {
