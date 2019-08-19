@@ -1,4 +1,2 @@
-secrets.env
 backup.sh
-build
-.env
+docker-config/.env

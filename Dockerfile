@@ -1,5 +1,4 @@
 FROM golang:1.12.4 as builder
-MAINTAINER W.K.S <waqqas.abdulkareem@gmail.com>
 
 WORKDIR /go/src/github.com/w-k-s/short-url
 
