@@ -53,3 +53,4 @@ Useful Resources
 6. [Building Go for Alpine Linux](https://www.blang.io/posts/2015-04_golang-alpine-build-golang-binaries-for-alpine-linux/)
 7. [Migrating to go modules](https://blog.callr.tech/migrating-from-dep-to-go-1.11-modules/)
 8. [Reduce Docker image size with multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/)
+9. [Only allow CD user to restart nginx](https://serverfault.com/questions/841099/systemd-grant-an-unprivileged-user-permission-to-alter-one-specific-service?newreg=c9a1362791da43f695cd5eb08b6e01c6)

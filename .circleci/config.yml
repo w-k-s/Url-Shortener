@@ -54,16 +54,16 @@ jobs:
           command: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app *.go
       - run:
           name: Secure copy app
-          command: scp -o StrictHostKeyChecking=no app admin@small.ml:/srv/short-url
+          command: scp -o StrictHostKeyChecking=no app cicd@small.ml:~/
       - run:
           name: Secure copy nginx.conf
-          command: scp -o StrictHostKeyChecking=no short-url.conf admin@small.ml:/etc/nginx/conf.d
+          command: scp -o StrictHostKeyChecking=no short-url.conf cicd@small.ml:/etc/nginx/conf.d
       - run:
           name: Restart application
-          command: ssh -o StrictHostKeyChecking=no admin@small.ml kill $(lsof -t -i :8080); DB_CONN_STRING=$DB_CONN_STRING APP_BUILD=$CIRCLE_BUILD_NUM go run /srv/short-url/app
+          command: ssh -o StrictHostKeyChecking=no cicd@small.ml kill $(lsof -t -i :8080); DB_CONN_STRING=$DB_CONN_STRING APP_BUILD=$CIRCLE_BUILD_NUM go run ~/app
       - run:
           name: Restart nginx server
-          command: ssh -o StrictHostKeyChecking=no admin@small.ml "systemctl restart nginx.service"
+          command: ssh -o StrictHostKeyChecking=no cicd@small.ml "sudo systemctl restart nginx.service"
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
