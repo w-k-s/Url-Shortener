@@ -6,6 +6,8 @@ services:
     container_name: short-url-nginx
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt/live/small.ml/fullchain.pem:/etc/letsencrypt/live/small.ml/fullchain.pem
+      - /etc/letsencrypt/live/small.ml/privkey.pem:/etc/letsencrypt/live/small.ml/privkey.pem
     ports:
       - 80:80
       - 443:443
@@ -14,26 +16,14 @@ services:
       - short-url-frontend
 
   short-url:
-    image: wkas/short-url:dev
+    image: wkas/short-url:prod
     container_name: short-url
     restart: always
+    env_file:
+      - .env
     environment:
       ADDRESS: ":8080"
-      DB_CONN_STRING: "mongodb://datastore:27017/shorturl"
+      PROD: "1"
     ports:
       - 8080:8080
       - 4430:4430
-
-  short-url-frontend:
-    image: wkas/short-url-frontend:dev
-    container_name: short-url-frontend
-    ports:
-      - 8081:8081
-  
-  datastore: #https://docs.docker.com/compose/networking/
-    image: mongo
-    container_name: short-url-datastore
-    ports:
-      - 27017:27017
-    volumes:
-      - ~/data:/data/db

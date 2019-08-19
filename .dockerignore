@@ -1,5 +1,0 @@
-.git/
-docker-compsose.local.yml
-docker-compose.production.yml
-secrets.env
-frontend
