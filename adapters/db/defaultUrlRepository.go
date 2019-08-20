@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -51,7 +52,7 @@ func (ur *DefaultURLRepository) SaveRecord(record *u.URLRecord) (*u.URLRecord, e
 
 	err = ur.updateIndexes()
 	if err != nil {
-		log.Panic(err)
+		return nil, err
 	}
 
 	return record, nil
@@ -93,6 +94,6 @@ func isConnectionError(err error) bool {
 
 func panicIfConnectionError(err error) {
 	if isConnectionError(err) {
-		log.Fatal(err)
+		log.Fatal(fmt.Sprintf("Connection Error: %v", err))
 	}
 }
