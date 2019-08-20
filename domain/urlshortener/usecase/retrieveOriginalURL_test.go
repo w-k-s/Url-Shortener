@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
@@ -34,7 +35,7 @@ func TestRetrieveOriginalURLUseCaseTestSuite(t *testing.T) {
 	suite.Run(t, new(RetrieveOriginalURLUseCaseTestSuite))
 }
 
-func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenShortURL_WhenShortlURLHasNoPath_ThenReturnError() {
+func (suite *RetrieveOriginalURLUseCaseTestSuite) TestGivenShortURL_WhenShortlURLHasNoPath_ThenReturnError() {
 
 	//Given
 	testURL, _ := url.Parse("http://www.small.ml")
@@ -49,9 +50,11 @@ func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenShortURL_WhenShortlURLHas
 	assert.Equal(suite.T(), expectation, int(err.Code()), "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, int(err.Code()))
 }
 
-func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenShortURL_WhenRecordDoesNotExist_ThenReturnError() {
+func (suite *RetrieveOriginalURLUseCaseTestSuite) TestGivenShortURL_WhenRecordDoesNotExist_ThenReturnError() {
 
 	//Given
+	suite.urlRepo.ReturnError = true
+	suite.urlRepo.LongURLRecordError = errors.New("Not found")
 	testURL, _ := url.Parse("http://www.small.ml/nil")
 
 	//When
@@ -61,11 +64,12 @@ func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenShortURL_WhenRecordDoesNo
 
 	//Then
 	expectation := RetrieveFullURLNotFound
+	assert.NotNil(suite.T(), err, "GetLongURL. Expected err, got nil")
 	assert.Equal(suite.T(), expectation, int(err.Code()), "GetLongURL wrong error code. Expected '%d'. Got: %d", expectation, int(err.Code()))
 
 }
 
-func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenShortURL_WhenRecordExists_ThenReturnOriginalURL() {
+func (suite *RetrieveOriginalURLUseCaseTestSuite) TestGivenShortURL_WhenRecordExists_ThenReturnOriginalURL() {
 
 	//Given
 	testURL, _ := url.Parse(savedShortURL)
@@ -77,24 +81,4 @@ func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenShortURL_WhenRecordExists
 	})
 
 	assert.Equal(suite.T(), savedLongURL, resp.LongURL, "GetLongURL returned wrong original url. Expected %s, Got: %s", savedLongURL, resp.LongURL)
-}
-
-func (suite *RetrieveOriginalURLUseCaseTestSuite) GivenRecordExists_WhenRecordHasInvalidURL_ThenReturnError() {
-
-	//Given
-	testURL, _ := url.Parse("http://small.ml/wrong")
-	suite.urlRepo.LongURLRecordResult = &u.URLRecord{
-		LongURL:    "@",
-		ShortID:    "wrong",
-		CreateTime: time.Now(),
-	}
-
-	//When
-	_, err := suite.useCase.Execute(RetrieveOriginalURLRequest{
-		shortURL: testURL,
-	})
-
-	//Then
-	expectation := RetrieveFullURLParsing
-	assert.Equal(suite.T(), expectation, int(err.Code()), "GetLongURL wrong error code. Expected '%v'. Got: %v", expectation, int(err.Code()))
 }

@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -22,6 +23,8 @@ const savedShortID = "shrt"
 const savedLongURL = "http://www.example.com"
 const savedShortURL = "http://small.ml/" + savedShortID
 
+//-- MockShortIDGenerator
+
 type MockShortIDGenerator struct {
 	ShortID string
 }
@@ -30,10 +33,46 @@ func (m MockShortIDGenerator) Generate(d usecase.ShortIDLength) string {
 	return m.ShortID
 }
 
+//-- MockURLRepository
+
+type MockURLRepository struct {
+	ReturnError bool
+
+	SaveURLRecordResult *u.URLRecord
+	SaveURLRecordError  error
+
+	LongURLRecordResult *u.URLRecord
+	LongURLRecordError  error
+
+	ShortURLRecordResult *u.URLRecord
+	ShortURLRecordError  error
+}
+
+func (m MockURLRepository) SaveRecord(record *u.URLRecord) (*u.URLRecord, error) {
+	if m.ReturnError {
+		return nil, m.SaveURLRecordError
+	}
+	return m.SaveURLRecordResult, nil
+}
+
+func (m MockURLRepository) LongURL(shortID string) (*u.URLRecord, error) {
+	if m.ReturnError {
+		return nil, m.LongURLRecordError
+	}
+	return m.LongURLRecordResult, nil
+}
+
+func (m MockURLRepository) ShortURL(longURL string) (*u.URLRecord, error) {
+	if m.ReturnError {
+		return nil, m.ShortURLRecordError
+	}
+	return m.ShortURLRecordResult, nil
+}
+
 type ControllerSuite struct {
 	suite.Suite
 	db                         *db.Db
-	urlRepo                    *db.DefaultURLRepository
+	urlRepo                    *MockURLRepository
 	record                     *u.URLRecord
 	generator                  *MockShortIDGenerator
 	shortenURLUseCase          *usecase.ShortenURLUseCase
@@ -42,12 +81,10 @@ type ControllerSuite struct {
 }
 
 func (suite *ControllerSuite) SetupTest() {
-	suite.db = db.New("mongodb://localhost:27017/shorturl_test")
-
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.generator = &MockShortIDGenerator{}
 
-	suite.urlRepo = db.NewURLRepository(suite.db, logger)
+	suite.urlRepo = &MockURLRepository{}
 	suite.shortenURLUseCase = usecase.NewShortenURLUseCase(suite.urlRepo, suite.generator, logger)
 	suite.retrieveOriginalURLUseCase = usecase.NewRetrieveOriginalURLUseCase(suite.urlRepo, logger)
 	suite.controller = NewController(suite.shortenURLUseCase, suite.retrieveOriginalURLUseCase, logger)
@@ -64,57 +101,74 @@ func (suite *ControllerSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerSuite) TearDownTest() {
-	suite.db.Instance().DropDatabase()
-}
-
 func TestControllerSuite(t *testing.T) {
 	suite.Run(t, new(ControllerSuite))
 }
 
-func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyDoesNotContainLongURL() {
-
+func (suite *ControllerSuite) TestGivenEmptyBody_WhenShorteningURL_ThenReturnsError() {
+	//Given
 	jsonBytes := bytes.NewBuffer([]byte("{}"))
+
+	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
+	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 }
 
-func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyDoesNotContainValidURL() {
-
+func (suite *ControllerSuite) TestGivenInvalidLongURL_WhenShorteningURL_ThenReturnError() {
+	//Given
 	jsonBytes := bytes.NewBuffer([]byte("{\"longUrl\":\"hello there\"}"))
+
+	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
+	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 
 }
 
-func (suite *ControllerSuite) TestGetShortURLWhenRequestBodyContainsRelativeURL() {
-
+func (suite *ControllerSuite) TestGivenRelativeLongURL_WhenShorteningURL_ThenReturnError() {
+	//Given
 	jsonBytes := bytes.NewBuffer([]byte("{\"longUrl\":\"path/to/file\"}"))
+
+	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
+	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 
 }
 
-func (suite *ControllerSuite) TestGetShortURLSuccessResponseWhenShortURLGenerated() {
+func (suite *ControllerSuite) TestGivenLongURL_WhenShorteningURL_() {
 
-	suite.generator.ShortID = "unique"
+	//Given
 	jsonBytes := bytes.NewBuffer([]byte("{\"longUrl\":\"http://www.eg.com\"}"))
+	suite.generator.ShortID = "unique"
+	suite.urlRepo.ShortURLRecordResult = &u.URLRecord{
+		LongURL:    "http://www.eg.com",
+		ShortID:    "unique",
+		CreateTime: time.Now(),
+	}
+
+	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
 	suite.controller.ShortenURL(w, req)
 
+	//Then
 	assert.Equal(suite.T(), "application/json;charset=utf-8", w.Header()["Content-Type"][0])
 
 	json := getJSONDictionaryOrNil(w)
@@ -123,72 +177,94 @@ func (suite *ControllerSuite) TestGetShortURLSuccessResponseWhenShortURLGenerate
 
 }
 
-func (suite *ControllerSuite) TestRedirectSuccessResponseWhenShortURLExists() {
+func (suite *ControllerSuite) TestGivenShortURLExists_WhenRedirecting_ThenSeeOtherResponse() {
 
+	//Given
+	suite.urlRepo.LongURLRecordResult = suite.record
+
+	//When
 	req := httptest.NewRequest("GET", savedShortURL, nil)
 	w := httptest.NewRecorder()
 	suite.controller.RedirectToLongURL(w, req)
-	resp := w.Result()
 
+	//Then
+	resp := w.Result()
 	assert.Equal(suite.T(), resp.StatusCode, http.StatusSeeOther)
 }
 
-func (suite *ControllerSuite) TestRedirectFailureResponseWhenShortURLDoesNotExist() {
+func (suite *ControllerSuite) TestGivenShortURLDoesNotExist_WhenRedirecting_ThenNotFoundResponse() {
+	//Given
+	suite.urlRepo.ReturnError = true
+	suite.urlRepo.LongURLRecordError = errors.New("Not Found")
 
+	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml/nil", nil)
 	w := httptest.NewRecorder()
 	suite.controller.RedirectToLongURL(w, req)
-	resp := w.Result()
 
+	//Then
+	resp := w.Result()
 	assert.Equal(suite.T(), resp.StatusCode, http.StatusNotFound)
 
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLNotFound), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLNotFound, err.Code())
 
 }
 
-func (suite *ControllerSuite) TestGetLongURLRequestWhenRequestQueryDoesNotContainShortURL() {
+func (suite *ControllerSuite) TestGivenNoShortURL_WhenGetLongURLRequest_ThenReturnRetrieveFullURLValidationError() {
 
 	req := httptest.NewRequest("GET", "http://www.small.ml", nil)
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLValidation, err.Code())
 
 }
 
-func (suite *ControllerSuite) TestGetLongURLRequestWhenRequestQueryContainInvalidShortURL() {
+func (suite *ControllerSuite) TestGivenInvalidShortURL_WhenGetLongURLRequest_ThenReturnRetrieveFullURLValidationError() {
 
+	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml?shortUrlhello%20there", nil)
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
+	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLValidation, err.Code())
 
 }
 
-func (suite *ControllerSuite) TestGetLongURLRequestWhenRequestQueryContainRelativeShortURL() {
+func (suite *ControllerSuite) TestGivenRelativeShortURL_WhenGetLongURLRequest_ThenReturnRetrieveFullURLValidationError() {
 
+	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml?shortUrl=path/to/file", nil)
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
+	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLValidation, err.Code())
-
 }
 
-func (suite *ControllerSuite) TestGetLongURLRequestWhenLongURLNotFound() {
+func (suite *ControllerSuite) TestGivenShortURLDoesNotExist_WhenGetLongURLRequest_ThenRetrieveFullURLNotFoundError() {
+	//Given
+	suite.urlRepo.ReturnError = true
+	suite.urlRepo.LongURLRecordError = errors.New("Not Found")
 
+	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml?shortUrl=http://www.small.ml/nil", nil)
 	w := httptest.NewRecorder()
 	suite.controller.GetLongURL(w, req)
 
+	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.RetrieveFullURLNotFound), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.RetrieveFullURLNotFound, err.Code())
-
 }
 
 func getJSONDictionaryOrNil(w *httptest.ResponseRecorder) map[string]interface{} {
@@ -205,6 +281,7 @@ func getJSONDictionaryOrNil(w *httptest.ResponseRecorder) map[string]interface{}
 
 func getErrOrNil(w *httptest.ResponseRecorder) domain.Err {
 	JSONDictionary := getJSONDictionaryOrNil(w)
+
 	if JSONDictionary == nil {
 		return nil
 	}

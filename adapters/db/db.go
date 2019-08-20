@@ -11,13 +11,19 @@ type Db struct {
 	name    string
 }
 
-func New(connString string) *Db {
+func New(connString string, safeMode bool) *Db {
 	if len(connString) == 0 {
 		panic("Blank database connection string")
 	}
 
 	name := connString[strings.LastIndex(connString, "/")+1:]
 	session, err := mgo.Dial(connString)
+	if safeMode {
+		session.SetSafe(&mgo.Safe{
+			W:     1,
+			FSync: true,
+		})
+	}
 	if err != nil {
 		panic(fmt.Sprintf("Could not connect to datastore with host %s - %v", connString, err))
 	}

@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
@@ -21,7 +22,7 @@ func (m MockShortIDGenerator) Generate(d ShortIDLength) string {
 	return m.ShortID
 }
 
-//-- MockShortIDGenerator
+//-- MockURLRepository
 
 type MockURLRepository struct {
 	ReturnError bool
@@ -73,9 +74,9 @@ type ShortenURLUseCaseTestSuite struct {
 
 func (suite *ShortenURLUseCaseTestSuite) SetupTest() {
 	suite.record = &u.URLRecord{
-		savedLongURL,
-		savedShortID,
-		time.Now(),
+		LongURL:    savedLongURL,
+		ShortID:    savedShortID,
+		CreateTime: time.Now(),
 	}
 
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
@@ -88,7 +89,7 @@ func TestShortenURLUseCaseTestSuite(t *testing.T) {
 	suite.Run(t, new(ShortenURLUseCaseTestSuite))
 }
 
-func (suite *ShortenURLUseCaseTestSuite) GivenRecordExists_WhenShorteningURL_ThenExistingRecordReturnedTestShortURLReturnedWhenRecordExists() {
+func (suite *ShortenURLUseCaseTestSuite) TestGivenRecordExists_WhenShorteningURL_ThenExistingRecordReturnedTestShortURLReturnedWhenRecordExists() {
 
 	//Given
 	hostURL, _ := url.Parse("http://www.small.ml")
@@ -107,7 +108,7 @@ func (suite *ShortenURLUseCaseTestSuite) GivenRecordExists_WhenShorteningURL_The
 	assert.Equal(suite.T(), expectation, response.ShortURL, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, response.ShortURL)
 }
 
-func (suite *ShortenURLUseCaseTestSuite) GivenRecordDoesNotExists_WhenShorteningURL_ThenRecordCreated() {
+func (suite *ShortenURLUseCaseTestSuite) TestGivenRecordDoesNotExists_WhenShorteningURL_ThenRecordCreated() {
 
 	//Given
 	suite.generator.ShortID = "alpha"
@@ -131,7 +132,7 @@ func (suite *ShortenURLUseCaseTestSuite) GivenRecordDoesNotExists_WhenShortening
 	assert.Equal(suite.T(), expectation, response.ShortURL, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, response.ShortURL)
 }
 
-func (suite *ShortenURLUseCaseTestSuite) GivenShortIDProvided_WhenShortIDNotInUse_ThenProvidedShortIDUsed() {
+func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDNotInUse_ThenProvidedShortIDUsed() {
 
 	//Given
 	suite.generator.ShortID = "NotUsed"
@@ -157,7 +158,7 @@ func (suite *ShortenURLUseCaseTestSuite) GivenShortIDProvided_WhenShortIDNotInUs
 
 }
 
-func (suite *ShortenURLUseCaseTestSuite) GivenShortIDProvided_WhenShortIDInUse_ThenProvidedShortIDNotUsed() {
+func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDInUse_ThenProvidedShortIDNotUsed() {
 
 	//Given
 	suite.generator.ShortID = "NotUsed"
@@ -179,13 +180,14 @@ func (suite *ShortenURLUseCaseTestSuite) GivenShortIDProvided_WhenShortIDInUse_T
 
 }
 
-func (suite *ShortenURLUseCaseTestSuite) GivenShortIDProvided_WhenShortIDNotUnique_ThenErrorReturned() {
+func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDNotUnique_ThenErrorReturned() {
 
 	//Given
 	suite.generator.ShortID = "NotUsed"
 	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.1.com")
-	suite.urlRepo.ShortURLRecordResult = suite.record
+	suite.urlRepo.ReturnError = true
+	suite.urlRepo.SaveURLRecordError = errors.New("short id exists")
 
 	//When
 	_, err := suite.useCase.Execute(ShortenURLRequest{
@@ -197,22 +199,28 @@ func (suite *ShortenURLUseCaseTestSuite) GivenShortIDProvided_WhenShortIDNotUniq
 
 	//Then
 	expectation := ShortenURLShortIDInUse
+	assert.NotNil(suite.T(), err, "ShortenURL: Expected Error, got nil")
 	assert.Equal(suite.T(), expectation, int(err.Code()), "ShortenURL generates wrong error code. Expected '%v'. Got: %v", expectation, err.Code())
 }
 
-func (suite *ShortenURLUseCaseTestSuite) GivenShortIDIsGenerated_WhenShortIDNotUnique_ThenReturnError() {
+func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDIsGenerated_WhenShortIDNotUnique_ThenReturnError() {
 
 	//Given
 	suite.generator.ShortID = savedShortID
+	suite.urlRepo.ReturnError = true
+	suite.urlRepo.SaveURLRecordError = errors.New("short id exists")
+
 	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.2.com")
 
+	//When
 	_, err := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.1.ml",
+		LongURL:    "http://www.2.com",
 		parsedURL:  testURL,
 		requestURL: hostURL,
 	})
-	expectation := ShortenURLFailedToSave
 
+	expectation := ShortenURLFailedToSave
+	assert.NotNil(suite.T(), err, "ShortenURL: Expected Error, got nil")
 	assert.Equal(suite.T(), expectation, int(err.Code()), "ShortenURL wrong error code. Expected '%d'. Got: %d", expectation, err)
 }

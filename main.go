@@ -15,7 +15,7 @@ var db *d.Db
 
 func init() {
 	app = web.Init()
-	db = d.New(os.Getenv("DB_CONN_STRING"))
+	db = d.New(os.Getenv("DB_CONN_STRING"), false)
 }
 
 func main() {
