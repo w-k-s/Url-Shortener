@@ -1,16 +1,20 @@
 package db
 
 import (
+	_ "fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 	"os"
 	"testing"
 	"time"
 )
+
+const savedShortID = "shorty"
+const savedLongURL = "http://www.examply.com"
+const savedShortURL = "http://small.ml/" + savedShortID
 
 type URLRepositoryTestSuite struct {
 	suite.Suite
@@ -28,19 +32,15 @@ func (suite *URLRepositoryTestSuite) SetupTest() {
 	suite.db = New("mongodb://localhost:27017/shorturl_test")
 	suite.urlRepo = NewURLRepository(suite.db, logger)
 
-	suite.db.Instance().
-		C("urls").
-		RemoveAll(bson.M{})
-
 	suite.record = &u.URLRecord{
-		LongURL:    "http://www.example.com",
-		ShortID:    "shrt",
+		LongURL:    savedLongURL,
+		ShortID:    savedShortID,
 		CreateTime: time.Now(),
 	}
 }
 
 func (suite *URLRepositoryTestSuite) TearDownTest() {
-	defer suite.db.Close()
+	suite.db.Instance().DropDatabase()
 }
 
 func (suite *URLRepositoryTestSuite) TestSaveRecordSucccessful() {
@@ -51,7 +51,6 @@ func (suite *URLRepositoryTestSuite) TestSaveRecordSucccessful() {
 }
 
 func (suite *URLRepositoryTestSuite) TestDuplicateRecordFails() {
-
 	suite.urlRepo.SaveRecord(suite.record)
 	_, err := suite.urlRepo.SaveRecord(suite.record)
 
@@ -66,7 +65,7 @@ func (suite *URLRepositoryTestSuite) TestFindExistingShortURL() {
 
 	result, err := suite.urlRepo.ShortURL(suite.record.LongURL)
 	expectation := result != nil && result.ShortID == suite.record.ShortID
-	assert.True(suite.T(), expectation, "Expected Matching ShortId '%s'. Got: '%v' (error: '%s')", suite.record.ShortID, result, err)
+	assert.True(suite.T(), expectation, "Expected Matching ShortId '%s'. Got: '%v' (error: '%s')", suite.record.ShortID, result.ShortID, err)
 }
 
 func (suite *URLRepositoryTestSuite) TestFindAbsentShortURL() {

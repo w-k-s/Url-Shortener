@@ -8,7 +8,7 @@ run: fmt
 	DB_CONN_STRING=mongodb://localhost:27017/shorturl go run *.go
 
 test: fmt
-	go test ./...
+	go clean -testcache; go test -count=1 ./...
 
 docker-build: fmt test clean
 	docker build --no-cache -t wkas/short-url:dev .

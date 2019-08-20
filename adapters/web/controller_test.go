@@ -3,14 +3,13 @@ package web
 import (
 	"bytes"
 	"encoding/json"
-	_ "fmt"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/w-k-s/short-url/adapters/db"
 	"github.com/w-k-s/short-url/domain"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -53,14 +52,6 @@ func (suite *ControllerSuite) SetupTest() {
 	suite.retrieveOriginalURLUseCase = usecase.NewRetrieveOriginalURLUseCase(suite.urlRepo, logger)
 	suite.controller = NewController(suite.shortenURLUseCase, suite.retrieveOriginalURLUseCase, logger)
 
-	suite.db.Instance().
-		C("urls").
-		RemoveAll(bson.M{})
-
-	suite.db.Instance().
-		C("visits").
-		RemoveAll(bson.M{})
-
 	suite.record = &u.URLRecord{
 		LongURL:    savedLongURL,
 		ShortID:    savedShortID,
@@ -69,12 +60,12 @@ func (suite *ControllerSuite) SetupTest() {
 
 	_, err := suite.urlRepo.SaveRecord(suite.record)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Setup Test: %s", err.Error()))
 	}
 }
 
 func (suite *ControllerSuite) TearDownTest() {
-	defer suite.db.Close()
+	suite.db.Instance().DropDatabase()
 }
 
 func TestControllerSuite(t *testing.T) {
