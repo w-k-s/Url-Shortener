@@ -24,7 +24,7 @@ func TestLogRepositoryTestSuite(t *testing.T) {
 
 func (suite *LogRepositoryTestSuite) SetupTest() {
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-	suite.db = database.New("mongodb://localhost:27017/shorturl_test")
+	suite.db = database.New("mongodb://localhost:27017/shorturl_test", true)
 	suite.logRepo = NewLogRepository(logger, suite.db)
 }
 

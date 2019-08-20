@@ -29,7 +29,7 @@ func TestURLRepositoryTestSuite(t *testing.T) {
 
 func (suite *URLRepositoryTestSuite) SetupTest() {
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-	suite.db = New("mongodb://localhost:27017/shorturl_test")
+	suite.db = New("mongodb://localhost:27017/shorturl_test", true)
 	suite.urlRepo = NewURLRepository(suite.db, logger)
 
 	suite.record = &u.URLRecord{
@@ -83,7 +83,7 @@ func (suite *URLRepositoryTestSuite) TestFindExistingLongURL() {
 	result, err := suite.urlRepo.LongURL(suite.record.ShortID)
 	expectation := result != nil && result.LongURL == suite.record.LongURL
 
-	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result, err)
+	assert.True(suite.T(), expectation, "Expected Matching LongURL '%s'. Got: '%v' (error: '%s')", suite.record.LongURL, result.LongURL, err)
 }
 
 func (suite *URLRepositoryTestSuite) TestFindAbsentLongURL() {
