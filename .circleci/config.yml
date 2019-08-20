@@ -60,7 +60,7 @@ jobs:
           command: scp -o StrictHostKeyChecking=no short-url.conf cicd@small.ml:/etc/nginx/conf.d
       - run:
           name: Restart application
-          command: ssh -o StrictHostKeyChecking=no cicd@small.ml lsof -ti :8080 | xargs --no-run-if-empty kill -9; DB_CONN_STRING=$DB_CONN_STRING APP_BUILD=$CIRCLE_BUILD_NUM ~/app &
+          command: ssh -o StrictHostKeyChecking=no cicd@small.ml lsof -ti :8080 | xargs --no-run-if-empty kill -9; DB_CONN_STRING=$DB_CONN_STRING APP_BUILD=$CIRCLE_BUILD_NUM nohup ~/app &
       - run:
           name: Restart nginx server
           command: ssh -o StrictHostKeyChecking=no cicd@small.ml "sudo systemctl restart nginx.service"
