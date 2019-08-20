@@ -116,7 +116,7 @@ func (suite *ControllerSuite) TestGivenEmptyBody_WhenShorteningURL_ThenReturnsEr
 
 	//Then
 	err := getErrOrNil(w)
-	fmt.Printf("error; %s\n", err)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 }
 
@@ -131,6 +131,7 @@ func (suite *ControllerSuite) TestGivenInvalidLongURL_WhenShorteningURL_ThenRetu
 
 	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 
 }
@@ -146,6 +147,7 @@ func (suite *ControllerSuite) TestGivenRelativeLongURL_WhenShorteningURL_ThenRet
 
 	//Then
 	err := getErrOrNil(w)
+	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
 	assert.Equal(suite.T(), domain.Code(usecase.ShortenURLValidation), err.Code(), "Wrong error code. Expected: %d, got: %d", usecase.ShortenURLValidation, err.Code())
 
 }
