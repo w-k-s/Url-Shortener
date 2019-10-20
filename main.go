@@ -8,19 +8,34 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"database/sql"
+	_ "github.com/lib/pq"
 )
 
 var app *web.App
-var db *d.Db
+var db *sql.DB
 
 func init() {
+	connStr := os.Getenv("DB_CONN_STRING")
+	if len(connStr) == 0 {
+		connStr = "postgres://localhost/url_shortener_test?sslmode=disable"
+	}
+	
+	var err error
+	db, err = sql.Open("postgres", connStr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if err = db.Ping(); err != nil {
+		panic(err)
+	}
+
 	app = web.Init()
-	db = d.New(os.Getenv("DB_CONN_STRING"), false)
 }
 
 func main() {
-	defer db.Close()
-
 	configureURLController()
 	configureLoggingMiddleware()
 
@@ -41,7 +56,7 @@ func configureURLController() {
 }
 
 func configureLoggingMiddleware() {
-	logRepository := logging.NewLogRepository(app.Logger(), db)
+	logRepository := logging.NewLogRepository(db, app.Logger())
 	app.Middleware(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

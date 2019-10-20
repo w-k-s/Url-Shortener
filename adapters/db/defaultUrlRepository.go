@@ -1,71 +1,50 @@
 package db
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 )
 
-const collNameURLs = "urls"
-
-const fieldShortID = "shortId"
-const fieldLongURL = "longUrl"
-
 type DefaultURLRepository struct {
-	db     *Db
+	db     *sql.DB
 	logger *log.Logger
 }
 
-func NewURLRepository(db *Db, logger *log.Logger) *DefaultURLRepository {
+func NewURLRepository(db *sql.DB, logger *log.Logger) *DefaultURLRepository {
 	return &DefaultURLRepository{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (ur *DefaultURLRepository) urlCollection() *mgo.Collection {
-	return ur.db.Instance().C(collNameURLs)
-}
-
-func (ur *DefaultURLRepository) updateIndexes() error {
-	index := mgo.Index{
-		Key:        []string{fieldShortID},
-		Unique:     true,  //only allow unique url-ids
-		DropDups:   false, //raise error if url-id is not unique
-		Background: false, //other connections cant use collection while index is under construction
-		Sparse:     true,  //if document is missing url-id, do not index it
-	}
-
-	return ur.urlCollection().EnsureIndex(index)
-}
-
 func (ur *DefaultURLRepository) SaveRecord(record *u.URLRecord) (*u.URLRecord, error) {
-	err := ur.urlCollection().
-		Insert(record)
+	_, err := ur.db.Exec(
+		`INSERT INTO url_records (long_url,short_id) VALUES ($1,$2)`, 
+		record.LongURL, 
+		record.ShortID,
+	)
 
-	if err != nil {
-		panicIfConnectionError(err)
-		return nil, err
-	}
-
-	err = ur.updateIndexes()
-	if err != nil {
-		return nil, err
-	}
-
-	return record, nil
+	return record, err
 }
 
 func (ur *DefaultURLRepository) LongURL(shortID string) (*u.URLRecord, error) {
-	var record u.URLRecord
-	err := ur.urlCollection().
-		Find(bson.M{fieldShortID: shortID}).
-		One(&record)
-
+	fmt.Println("-> Start LongURL")
+	rows, err := ur.db.Query("SELECT * FROM url_records WHERE short_id = $1", shortID)
 	if err != nil {
-		panicIfConnectionError(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, errors.New("Not Found")
+	}
+
+	var record u.URLRecord
+	if err = rows.Scan(&record.LongURL, &record.ShortID, &record.CreateTime); err != nil {
 		return nil, err
 	}
 
@@ -73,27 +52,27 @@ func (ur *DefaultURLRepository) LongURL(shortID string) (*u.URLRecord, error) {
 }
 
 func (ur *DefaultURLRepository) ShortURL(longURL string) (*u.URLRecord, error) {
-	var record u.URLRecord
-	err := ur.urlCollection().
-		Find(bson.M{fieldLongURL: longURL}).
-		One(&record)
-
+	rows, err := ur.db.Query("SELECT * FROM url_records WHERE long_url = $1", longURL)
 	if err != nil {
-		panicIfConnectionError(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, errors.New("Not Found")
+	}
+
+	var record u.URLRecord
+	if err = rows.Scan(&record.LongURL, &record.ShortID, &record.CreateTime); err != nil {
 		return nil, err
 	}
 
 	return &record, nil
 }
 
-func isConnectionError(err error) bool {
-	otherError := mgo.IsDup(err) ||
-		err == mgo.ErrNotFound
-	return !otherError
-}
-
-func panicIfConnectionError(err error) {
-	if isConnectionError(err) {
-		log.Fatal(fmt.Sprintf("Connection Error: %v", err))
+func (ur *DefaultURLRepository) IsDup(err error) bool {
+	if pqError, ok := err.(*pq.Error); ok {
+		return pqError.Code.Name() == "unique_violation"
 	}
+	return false
 }

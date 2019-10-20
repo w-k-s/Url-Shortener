@@ -2,19 +2,14 @@ package logging
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
-	database "github.com/w-k-s/short-url/adapters/db"
-	"gopkg.in/mgo.v2"
+	_ "github.com/lib/pq"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 )
-
-const collNameLogs = "logs"
-
-const fieldShortID = "shortId"
-const fieldLongURL = "longUrl"
 
 type logRecord struct {
 	Time      time.Time `bson:"createTime"`
@@ -36,63 +31,18 @@ func (lr logRecord) String() string {
 }
 
 type LogRepository struct {
-	db     *database.Db
+	db     *sql.DB
 	logger *log.Logger
 }
 
-func NewLogRepository(logger *log.Logger, db *database.Db) *LogRepository {
-
-	createLogsCollectionIfNotExists(db.Instance())
-
+func NewLogRepository(db *sql.DB, logger *log.Logger) *LogRepository {
 	return &LogRepository{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func createLogsCollectionIfNotExists(db *mgo.Database) error {
-	if exists := logCollectionExists(db); !exists {
-		return createLogsCollection(db)
-	}
-	return nil
-}
-
-func logCollectionExists(db *mgo.Database) bool {
-
-	names, err := db.CollectionNames()
-	if err != nil {
-		panic(err.Error)
-	}
-
-	for _, name := range names {
-		if name == collNameLogs {
-			return true
-		}
-	}
-
-	return false
-}
-
-func createLogsCollection(db *mgo.Database) error {
-
-	coll := &mgo.Collection{
-		Database: db,
-		Name:     collNameLogs,
-		FullName: fmt.Sprintf("%s.%s", db.Name, collNameLogs),
-	}
-
-	return coll.Create(&mgo.CollectionInfo{
-		Capped:   true,
-		MaxBytes: 5000000, //5MB
-	})
-}
-
-func (lr *LogRepository) logsCollection() *mgo.Collection {
-	return lr.db.Instance().C(collNameLogs)
-}
-
 func (lr *LogRepository) LogRequest(r *http.Request) *logRecord {
-
 	return &logRecord{
 		Time:      time.Now(),
 		Method:    r.Method,
@@ -105,7 +55,18 @@ func (lr *LogRepository) LogRequest(r *http.Request) *logRecord {
 func (lr *LogRepository) LogResponse(sw *StatusWriter, record *logRecord) error {
 	record.Status = sw.Status()
 	lr.logger.Println(record.String())
-	return lr.logsCollection().Insert(record)
+
+	_, err := lr.db.Exec(
+		`INSERT INTO logs (method,uri,ip_address,status,body,create_time) VALUES ($1,$2,$3,$4,$5,$6)`,
+		record.Method,
+		record.URI,
+		record.IPAddress,
+		record.Status,
+		record.Body,
+		record.Time,
+	)
+
+	return err
 }
 
 func readRequestBody(r *http.Request) string {
