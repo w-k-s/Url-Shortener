@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	_ "github.com/lib/pq"
 	d "github.com/w-k-s/short-url/adapters/db"
 	"github.com/w-k-s/short-url/adapters/logging"
 	"github.com/w-k-s/short-url/adapters/web"
@@ -8,8 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"database/sql"
-	_ "github.com/lib/pq"
 )
 
 var app *web.App
@@ -20,7 +20,7 @@ func init() {
 	if len(connStr) == 0 {
 		connStr = "postgres://localhost/url_shortener_test?sslmode=disable"
 	}
-	
+
 	var err error
 	db, err = sql.Open("postgres", connStr)
 

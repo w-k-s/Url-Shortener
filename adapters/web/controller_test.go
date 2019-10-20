@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/w-k-s/short-url/adapters/db"
 	"github.com/w-k-s/short-url/domain"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
@@ -71,7 +70,6 @@ func (m MockURLRepository) ShortURL(longURL string) (*u.URLRecord, error) {
 
 type ControllerSuite struct {
 	suite.Suite
-	db                         *db.Db
 	urlRepo                    *MockURLRepository
 	record                     *u.URLRecord
 	generator                  *MockShortIDGenerator

@@ -23,8 +23,8 @@ func NewURLRepository(db *sql.DB, logger *log.Logger) *DefaultURLRepository {
 
 func (ur *DefaultURLRepository) SaveRecord(record *u.URLRecord) (*u.URLRecord, error) {
 	_, err := ur.db.Exec(
-		`INSERT INTO url_records (long_url,short_id) VALUES ($1,$2)`, 
-		record.LongURL, 
+		`INSERT INTO url_records (long_url,short_id) VALUES ($1,$2)`,
+		record.LongURL,
 		record.ShortID,
 	)
 
