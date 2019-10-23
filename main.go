@@ -18,18 +18,18 @@ var db *sql.DB
 func init() {
 	connStr := os.Getenv("DB_CONN_STRING")
 	if len(connStr) == 0 {
-		connStr = "postgres://localhost/url_shortener_test?sslmode=disable"
+		connStr = "postgres://localhost/url_shortener?sslmode=disable"
 	}
 
 	var err error
 	db, err = sql.Open("postgres", connStr)
 
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to open db with connection string %s: %s", connStr, err)
 	}
 
 	if err = db.Ping(); err != nil {
-		panic(err)
+		log.Fatalf("Failed to ping db with connection string %s: %s", connStr, err)
 	}
 
 	app = web.Init()

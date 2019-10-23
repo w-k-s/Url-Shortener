@@ -11,22 +11,40 @@ services:
       - 443:443
     links:
       - short-url
-
+      - short-url-frontend
+  
+  short-url-frontend:
+    image: wkas/short-url-frontend:1.0.1
+    container_name: short-url-frontend
+    ports:
+      - 8081:8081
+  
   short-url:
     image: wkas/short-url:dev
     container_name: short-url
     restart: always
     environment:
       ADDRESS: ":8080"
-      DB_CONN_STRING: "mongodb://datastore:27017/shorturl"
+      DB_CONN_STRING: "postgres://root:password@datastore:5432/url_shortener?sslmode=disable"
     ports:
       - 8080:8080
       - 4430:4430
+    links:
+      - datastore
+    depends_on:
+      - datastore
   
   datastore: #https://docs.docker.com/compose/networking/
-    image: mongo
+    image: postgres:12
     container_name: short-url-datastore
+    environment:
+      POSTGRES_DB: url_shortener
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
     ports:
-      - 27017:27017
+      - 5432:5432
     volumes:
-      - ~/data:/data/db
+      - data:/var/lib/postgresql/data
+      - ./data/0001-createdb.sql:/docker-entrypoint-initdb.d/0001-createdb.sql
+volumes:
+  data: {}
