@@ -1,4 +1,4 @@
-version: '3.1' #docker-compose syntax version
+version: '2.1' #docker-compose syntax version
 
 services:
   short-url-nginx: 
@@ -14,7 +14,7 @@ services:
       - short-url-frontend
   
   short-url-frontend:
-    image: wkas/short-url-frontend:1.0.1
+    image: wkas/short-url-frontend:dev
     container_name: short-url-frontend
     ports:
       - 8081:8081
@@ -32,19 +32,24 @@ services:
     links:
       - datastore
     depends_on:
-      - datastore
+      datastore:
+        condition: service_healthy
   
   datastore: #https://docs.docker.com/compose/networking/
-    image: postgres:12
+    image: mdillon/postgis
+    restart: always
     container_name: short-url-datastore
     environment:
-      POSTGRES_DB: url_shortener
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
     ports:
       - 5432:5432
     volumes:
-      - data:/var/lib/postgresql/data
-      - ./data/0001-createdb.sql:/docker-entrypoint-initdb.d/0001-createdb.sql
+      - ./data:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 volumes:
   data: {}

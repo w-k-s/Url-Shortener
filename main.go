@@ -18,7 +18,7 @@ var db *sql.DB
 func init() {
 	connStr := os.Getenv("DB_CONN_STRING")
 	if len(connStr) == 0 {
-		connStr = "postgres://localhost/url_shortener?sslmode=disable"
+		log.Fatal("Connection String is required")
 	}
 
 	var err error
