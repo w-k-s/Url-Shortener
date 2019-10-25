@@ -21,10 +21,8 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: logs; Type: TABLE; Schema: public; Owner: root
+-- Name: logs; Type: TABLE; Schema: public; Owner: shorturl
 --
-
-CREATE DATABASE url_shortener;
 
 CREATE TABLE public.logs (
     method character varying(64),
@@ -36,10 +34,10 @@ CREATE TABLE public.logs (
 );
 
 
-ALTER TABLE public.logs OWNER TO root;
+ALTER TABLE public.logs OWNER TO shorturl;
 
 --
--- Name: url_records; Type: TABLE; Schema: public; Owner: root
+-- Name: url_records; Type: TABLE; Schema: public; Owner: shorturl
 --
 
 CREATE TABLE public.url_records (
@@ -49,10 +47,10 @@ CREATE TABLE public.url_records (
 );
 
 
-ALTER TABLE public.url_records OWNER TO root;
+ALTER TABLE public.url_records OWNER TO shorturl;
 
 --
--- Name: url_records url_records_pkey; Type: CONSTRAINT; Schema: public; Owner: root
+-- Name: url_records url_records_pkey; Type: CONSTRAINT; Schema: public; Owner: shorturl
 --
 
 ALTER TABLE ONLY public.url_records

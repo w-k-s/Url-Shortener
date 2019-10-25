@@ -25,7 +25,7 @@ services:
     restart: always
     environment:
       ADDRESS: ":8080"
-      DB_CONN_STRING: "postgres://root:password@datastore:5432/url_shortener?sslmode=disable"
+      DB_CONN_STRING: "postgres://shorturl:password@datastore:5432/url_shortener?sslmode=disable"
     ports:
       - 8080:8080
       - 4430:4430
@@ -40,8 +40,9 @@ services:
     restart: always
     container_name: short-url-datastore
     environment:
-      POSTGRES_USER: root
+      POSTGRES_USER: shorturl
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: url_shortener
     ports:
       - 5432:5432
     volumes:
