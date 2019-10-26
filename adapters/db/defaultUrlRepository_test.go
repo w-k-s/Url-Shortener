@@ -28,7 +28,11 @@ func TestURLRepositoryTestSuite(t *testing.T) {
 }
 
 func (suite *URLRepositoryTestSuite) SetupTest() {
-	connStr := "postgres://localhost/url_shortener_test?sslmode=disable"
+	connStr := os.Getenv("TEST_DB_CONN_STRING")
+	if len(connStr) == 0 {
+		connStr = "postgres://localhost/url_shortener_test?sslmode=disable"
+	}
+
 	db, err := sql.Open("postgres", connStr)
 
 	if err != nil {

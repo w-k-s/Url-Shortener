@@ -4,35 +4,66 @@ jobs:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.12
-      - image: "circleci/mongo:3.6.0"
-
+      - image: circleci/postgres:9.6.2-alpine
+        environment:
+          POSTGRES_USER: shorturl
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: url_shortener
     environment:
       TEST_RESULTS: /tmp/test-results
       GO111MODULE: "on"
-
+      
     working_directory: /go/src/github.com/w-k-s/short-url
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-
+      # Restore cache
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-
+      # Install dependencies
       - run: go get
       - run: go get github.com/jstemmer/go-junit-report
-
+      - run:
+          name: Waiting for Postgres to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z localhost 5432 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for Postgres && exit 1
+      - run:
+          name: Install postgresql-client; Import dummy data; run an example query
+          command: |
+            sudo apt install -y postgresql-client || true
+            PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener < docker-config/data/schema.sql
+            PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener -c "select * from public.url_records"
       - run:
           name: Run unit tests
+          environment:
+            TEST_DB_CONN_STRING: "postgres://shorturl:password@localhost:5432/url_shortener?sslmode=disable"
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
             make test | tee ${TEST_RESULTS}/go-test.out
-
+      - run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app *.go
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
-
+      - run:
+          name: Start short-url service
+          environment:
+            DB_CONN_STRING: "postgres://shorturl:password@localhost:5432/url_shortener?sslmode=disable"
+          command: ./app
+          background: true
+      - run:
+          name: Validate service is working
+          command: |
+            sleep 5
+            curl --retry 10 --retry-delay 1 -X POST --header "Content-Type: application/json" -d '{"longUrl":"www.example.com"}' http://localhost:8080/urlshortener/v1/url
+  
       - store_artifacts:
           path: /tmp/test-results
           destination: raw-test-output
