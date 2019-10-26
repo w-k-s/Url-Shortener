@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  build_backend:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.12
@@ -13,9 +13,10 @@ jobs:
       TEST_RESULTS: /tmp/test-results
       GO111MODULE: "on"
       
-    working_directory: /go/src/github.com/w-k-s/short-url
+    working_directory: /go/src/github.com/w-k-s/short-url/backend
     steps:
-      - checkout
+      - checkout:
+          path: /go/src/github.com/w-k-s/short-url
       - run: mkdir -p $TEST_RESULTS
       # Restore cache
       - restore_cache:
@@ -38,7 +39,7 @@ jobs:
           name: Install postgresql-client; Import dummy data; run an example query
           command: |
             sudo apt install -y postgresql-client || true
-            PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener < docker-config/data/schema.sql
+            PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener < ../docker-config/data/schema.sql
             PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener -c "select * from public.url_records"
       - run:
           name: Run unit tests
@@ -110,10 +111,10 @@ workflows:
   version: 2
   deployment:
     jobs:
-      - build
+      - build_backend
       - deploy:
           requires:
-            - build
+            - build_backend
           filters:
             branches:
               only: master
