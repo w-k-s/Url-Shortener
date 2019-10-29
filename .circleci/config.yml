@@ -72,7 +72,7 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
   
-  deploy:
+  deploy_backend:
     docker:
       - image: circleci/golang:1.12
     environment:
@@ -107,13 +107,60 @@ jobs:
       - run:
           name: docker push image
           command: docker push "wkas/short-url:$CIRCLE_BUILD_NUM"
+  deploy_frontend:
+    docker:
+      - image: circleci/node:10.16.3
+    working_directory: /go/src/github.com/w-k-s/short-url/frontend
+    steps:
+      - checkout:
+          path: /go/src/github.com/w-k-s/short-url
+      - run:
+          name: update-npm
+          command: 'sudo npm install -g npm@latest'
+      - restore_cache: # special step to restore the dependency cache
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          key: dependency-cache-{{ checksum "package-lock.json" }}
+      - run:
+          name: Install Dependencies
+          command: npm install
+      - save_cache: # special step to save the dependency cache
+          key: dependency-cache-{{ checksum "package-lock.json" }}
+          paths:
+            - ./node_modules
+      - run: # run grunt in production mode
+          name: Built in production mode
+          command: grunt production
+      - run: # sync build dir with s3 bucket
+          name: Sync with S3 bucket
+          command: |
+              sudo apt-get -y -qq install awscli
+              aws s3 sync build s3://small.ml --region ap-south-1 --delete
+      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
+      - run:
+          name: Login to docker hub
+          command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+      - run:
+          name: docker build image
+          command: docker build -t "wkas/short-url-frontend:$CIRCLE_BUILD_NUM" -t "wkas/short-url-frontend:latest" .
+      - run:
+          name: docker push image
+          command: docker push "wkas/short-url-frontend:$CIRCLE_BUILD_NUM"
+      - run:
+          name: docker push image
+          command: docker push "wkas/short-url-frontend:latest"
 workflows:
   version: 2
   deployment:
     jobs:
       - build_backend
-      - deploy:
+      - deploy_backend:
           requires:
+            - build_backend
+          filters:
+            branches:
+              only: master
+      - deploy_frontend:
+          requires: # Deploy only when both services work
             - build_backend
           filters:
             branches:

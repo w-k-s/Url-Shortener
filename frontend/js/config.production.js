@@ -1,1 +1,1 @@
-const BASE_URL = "https://small.ml";
+const BASE_URL = "https://api.small.ml";
