@@ -36,10 +36,21 @@ func init() {
 }
 
 func main() {
+	configureHealthCheck()
 	configureURLController()
 	configureLoggingMiddleware()
 
 	log.Panic(app.ListenAndServe())
+}
+
+func configureHealthCheck() {
+	app.Get("/health", func(w http.ResponseWriter, req *http.Request) {
+		if err := db.Ping(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 func configureURLController() {
