@@ -2,10 +2,10 @@ package logging
 
 import (
 	"bytes"
+	"database/sql"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	database "github.com/w-k-s/short-url/adapters/db"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http/httptest"
 	"os"
@@ -14,7 +14,7 @@ import (
 
 type LogRepositoryTestSuite struct {
 	suite.Suite
-	db      *database.Db
+	db      *sql.DB
 	logRepo *LogRepository
 }
 
@@ -23,19 +23,30 @@ func TestLogRepositoryTestSuite(t *testing.T) {
 }
 
 func (suite *LogRepositoryTestSuite) SetupTest() {
+	connStr := os.Getenv("TEST_DB_CONN_STRING")
+	if len(connStr) == 0 {
+		connStr = "postgres://localhost/url_shortener_test?sslmode=disable"
+	}
+	db, err := sql.Open("postgres", connStr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if err = db.Ping(); err != nil {
+		panic(err)
+	}
+
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-	suite.db = database.New("mongodb://localhost:27017/shorturl_test", true)
-	suite.logRepo = NewLogRepository(logger, suite.db)
+	suite.db = db
+	suite.logRepo = NewLogRepository(suite.db, logger)
 }
 
 func (suite *LogRepositoryTestSuite) TearDownTest() {
-
-	suite.db.Instance().
-		C("logs").
-		RemoveAll(bson.M{})
-
-	defer suite.db.Close()
-
+	_, err := suite.db.Exec("DELETE FROM logs")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (suite *LogRepositoryTestSuite) TestSaveRecordSucccessful() {

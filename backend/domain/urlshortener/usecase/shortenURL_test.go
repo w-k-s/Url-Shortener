@@ -62,7 +62,8 @@ func (m MockURLRepository) ShortURL(longURL string) (*u.URLRecord, error) {
 
 const savedShortID = "shrt"
 const savedLongURL = "http://www.example.com"
-const savedShortURL = "http://small.ml/" + savedShortID
+const baseURLString = "https://small.ml/"
+const savedShortURL = baseURLString + savedShortID
 
 type ShortenURLUseCaseTestSuite struct {
 	suite.Suite
@@ -79,10 +80,12 @@ func (suite *ShortenURLUseCaseTestSuite) SetupTest() {
 		CreateTime: time.Now(),
 	}
 
+	baseURL, _ := url.Parse(baseURLString)
+
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.generator = &MockShortIDGenerator{}
 	suite.urlRepo = &MockURLRepository{}
-	suite.useCase = NewShortenURLUseCase(suite.urlRepo, suite.generator, logger)
+	suite.useCase = NewShortenURLUseCase(suite.urlRepo, baseURL, suite.generator, logger)
 }
 
 func TestShortenURLUseCaseTestSuite(t *testing.T) {
@@ -92,19 +95,17 @@ func TestShortenURLUseCaseTestSuite(t *testing.T) {
 func (suite *ShortenURLUseCaseTestSuite) TestGivenRecordExists_WhenShorteningURL_ThenExistingRecordReturnedTestShortURLReturnedWhenRecordExists() {
 
 	//Given
-	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse(savedLongURL)
 	suite.urlRepo.ShortURLRecordResult = suite.record
 
 	//When
 	response, _ := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.1.ml",
-		parsedURL:  testURL,
-		requestURL: hostURL,
+		LongURL:   "http://www.1.ml",
+		parsedURL: testURL,
 	})
 
 	//Then
-	expectation := "http://www.small.ml/" + savedShortID
+	expectation := savedShortURL
 	assert.Equal(suite.T(), expectation, response.ShortURL, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, response.ShortURL)
 }
 
@@ -112,7 +113,6 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenRecordDoesNotExists_WhenShorte
 
 	//Given
 	suite.generator.ShortID = "alpha"
-	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.1.com")
 	suite.urlRepo.SaveURLRecordResult = &u.URLRecord{
 		LongURL:    savedLongURL,
@@ -122,13 +122,12 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenRecordDoesNotExists_WhenShorte
 
 	//When
 	response, _ := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.1.ml",
-		parsedURL:  testURL,
-		requestURL: hostURL,
+		LongURL:   "http://www.1.ml",
+		parsedURL: testURL,
 	})
 
 	//Then
-	expectation := "http://www.small.ml/" + suite.generator.ShortID
+	expectation := baseURLString + suite.generator.ShortID
 	assert.Equal(suite.T(), expectation, response.ShortURL, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, response.ShortURL)
 }
 
@@ -136,7 +135,6 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDNot
 
 	//Given
 	suite.generator.ShortID = "NotUsed"
-	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.1.com")
 	suite.urlRepo.SaveURLRecordResult = &u.URLRecord{
 		LongURL:    savedLongURL,
@@ -146,14 +144,13 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDNot
 
 	//When
 	response, _ := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.1.ml",
-		ShortID:    "Used",
-		parsedURL:  testURL,
-		requestURL: hostURL,
+		LongURL:   "http://www.1.ml",
+		ShortID:   "Used",
+		parsedURL: testURL,
 	})
 
 	//Then
-	expectation := "http://www.small.ml/Used"
+	expectation := baseURLString + "Used"
 	assert.Equal(suite.T(), expectation, response.ShortURL, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, response.ShortURL)
 
 }
@@ -162,20 +159,18 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDInU
 
 	//Given
 	suite.generator.ShortID = "NotUsed"
-	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.1.com")
 	suite.urlRepo.ShortURLRecordResult = suite.record
 
 	//When
 	response, _ := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.1.ml",
-		ShortID:    "NotUsed",
-		parsedURL:  testURL,
-		requestURL: hostURL,
+		LongURL:   "http://www.1.ml",
+		ShortID:   "NotUsed",
+		parsedURL: testURL,
 	})
 
 	//Then
-	expectation := "http://www.small.ml/" + savedShortID
+	expectation := savedShortURL
 	assert.Equal(suite.T(), expectation, response.ShortURL, "ShortenURL generates wrong url. Expected '%s'. Got: %s", expectation, response.ShortURL)
 
 }
@@ -184,17 +179,15 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDProvided_WhenShortIDNot
 
 	//Given
 	suite.generator.ShortID = "NotUsed"
-	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.1.com")
 	suite.urlRepo.ReturnError = true
 	suite.urlRepo.SaveURLRecordError = errors.New("short id exists")
 
 	//When
 	_, err := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.1.ml",
-		ShortID:    savedShortID,
-		parsedURL:  testURL,
-		requestURL: hostURL,
+		LongURL:   "http://www.1.ml",
+		ShortID:   savedShortID,
+		parsedURL: testURL,
 	})
 
 	//Then
@@ -210,14 +203,12 @@ func (suite *ShortenURLUseCaseTestSuite) TestGivenShortIDIsGenerated_WhenShortID
 	suite.urlRepo.ReturnError = true
 	suite.urlRepo.SaveURLRecordError = errors.New("short id exists")
 
-	hostURL, _ := url.Parse("http://www.small.ml")
 	testURL, _ := url.Parse("http://www.2.com")
 
 	//When
 	_, err := suite.useCase.Execute(ShortenURLRequest{
-		LongURL:    "http://www.2.com",
-		parsedURL:  testURL,
-		requestURL: hostURL,
+		LongURL:   "http://www.2.com",
+		parsedURL: testURL,
 	})
 
 	expectation := ShortenURLFailedToSave

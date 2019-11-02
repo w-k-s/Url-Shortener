@@ -1,11 +1,11 @@
 package db
 
 import (
-	_ "fmt"
+	"database/sql"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"gopkg.in/mgo.v2"
 	"log"
 	"os"
 	"testing"
@@ -18,7 +18,7 @@ const savedShortURL = "http://small.ml/" + savedShortID
 
 type URLRepositoryTestSuite struct {
 	suite.Suite
-	db      *Db
+	db      *sql.DB
 	urlRepo *DefaultURLRepository
 	record  *u.URLRecord
 }
@@ -28,8 +28,23 @@ func TestURLRepositoryTestSuite(t *testing.T) {
 }
 
 func (suite *URLRepositoryTestSuite) SetupTest() {
+	connStr := os.Getenv("TEST_DB_CONN_STRING")
+	if len(connStr) == 0 {
+		connStr = "postgres://localhost/url_shortener_test?sslmode=disable"
+	}
+
+	db, err := sql.Open("postgres", connStr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if err = db.Ping(); err != nil {
+		panic(err)
+	}
+
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-	suite.db = New("mongodb://localhost:27017/shorturl_test", true)
+	suite.db = db
 	suite.urlRepo = NewURLRepository(suite.db, logger)
 
 	suite.record = &u.URLRecord{
@@ -40,7 +55,10 @@ func (suite *URLRepositoryTestSuite) SetupTest() {
 }
 
 func (suite *URLRepositoryTestSuite) TearDownTest() {
-	suite.db.Instance().DropDatabase()
+	_, err := suite.db.Exec("DELETE FROM url_records")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (suite *URLRepositoryTestSuite) TestSaveRecordSucccessful() {
@@ -54,7 +72,7 @@ func (suite *URLRepositoryTestSuite) TestDuplicateRecordFails() {
 	suite.urlRepo.SaveRecord(suite.record)
 	_, err := suite.urlRepo.SaveRecord(suite.record)
 
-	assert.True(suite.T(), mgo.IsDup(err), "Expected: duplication error. Got: %s", err)
+	assert.True(suite.T(), suite.urlRepo.IsDup(err), "Expected: duplication error. Got: %s", err)
 }
 
 func (suite *URLRepositoryTestSuite) TestFindExistingShortURL() {

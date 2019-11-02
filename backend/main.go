@@ -1,36 +1,70 @@
 package main
 
 import (
+	"database/sql"
+	_ "github.com/lib/pq"
 	d "github.com/w-k-s/short-url/adapters/db"
 	"github.com/w-k-s/short-url/adapters/logging"
 	"github.com/w-k-s/short-url/adapters/web"
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
 var app *web.App
-var db *d.Db
+var db *sql.DB
+var baseURL *url.URL
 
 func init() {
+	var err error
+
+	baseURL, err = url.Parse(os.Getenv("BASE_URL"))
+	if err != nil {
+		log.Fatalf("Failed to parse env variable 'BASE_URL': '%s'", os.Getenv("BASE_URL"))
+	}
+
+	connStr := os.Getenv("DB_CONN_STRING")
+	if len(connStr) == 0 {
+		log.Fatal("Connection String is required")
+	}
+
+	db, err = sql.Open("postgres", connStr)
+
+	if err != nil {
+		log.Fatalf("Failed to open db with connection string %s: %s", connStr, err)
+	}
+
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Failed to ping db with connection string %s: %s", connStr, err)
+	}
+
 	app = web.Init()
-	db = d.New(os.Getenv("DB_CONN_STRING"), false)
 }
 
 func main() {
-	defer db.Close()
-
+	configureHealthCheck()
 	configureURLController()
 	configureLoggingMiddleware()
 
 	log.Panic(app.ListenAndServe())
 }
 
+func configureHealthCheck() {
+	app.Get("/health", func(w http.ResponseWriter, req *http.Request) {
+		if err := db.Ping(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
 func configureURLController() {
 	urlRepo := d.NewURLRepository(db, app.Logger())
 
-	shortenURLUseCase := usecase.NewShortenURLUseCase(urlRepo, usecase.DefaultShortIDGenerator{}, app.Logger())
+	shortenURLUseCase := usecase.NewShortenURLUseCase(urlRepo, baseURL, usecase.DefaultShortIDGenerator{}, app.Logger())
 	retrieveOriginalURLUseCase := usecase.NewRetrieveOriginalURLUseCase(urlRepo, app.Logger())
 
 	urlController := web.NewController(shortenURLUseCase, retrieveOriginalURLUseCase, app.Logger())
@@ -41,7 +75,7 @@ func configureURLController() {
 }
 
 func configureLoggingMiddleware() {
-	logRepository := logging.NewLogRepository(app.Logger(), db)
+	logRepository := logging.NewLogRepository(db, app.Logger())
 	app.Middleware(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

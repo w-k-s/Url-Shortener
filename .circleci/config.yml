@@ -1,38 +1,70 @@
 version: 2
 jobs:
-  build:
+  build_backend:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.12
-      - image: "circleci/mongo:3.6.0"
-
+      - image: circleci/postgres:9.6.2-alpine
+        environment:
+          POSTGRES_USER: shorturl
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: url_shortener
     environment:
       TEST_RESULTS: /tmp/test-results
       GO111MODULE: "on"
-
-    working_directory: /go/src/github.com/w-k-s/short-url
+      
+    working_directory: /go/src/github.com/w-k-s/short-url/backend
     steps:
-      - checkout
+      - checkout:
+          path: /go/src/github.com/w-k-s/short-url
       - run: mkdir -p $TEST_RESULTS
-
+      # Restore cache
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-
+      # Install dependencies
       - run: go get
       - run: go get github.com/jstemmer/go-junit-report
-
+      - run:
+          name: Waiting for Postgres to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z localhost 5432 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for Postgres && exit 1
+      - run:
+          name: Install postgresql-client; Import dummy data; run an example query
+          command: |
+            sudo apt install -y postgresql-client || true
+            PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener < ../docker-config/data/schema.sql
+            PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener -c "select * from public.url_records"
       - run:
           name: Run unit tests
+          environment:
+            TEST_DB_CONN_STRING: "postgres://shorturl:password@localhost:5432/url_shortener?sslmode=disable"
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
             make test | tee ${TEST_RESULTS}/go-test.out
-
+      - run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app *.go
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
-
+      - run:
+          name: Start short-url service
+          environment:
+            DB_CONN_STRING: "postgres://shorturl:password@localhost:5432/url_shortener?sslmode=disable"
+          command: ./app
+          background: true
+      - run:
+          name: Validate service is working
+          command: |
+            sleep 5
+            curl --retry 10 --retry-delay 1 -X POST --header "Content-Type: application/json" -d '{"longUrl":"www.example.com"}' http://localhost:8080/urlshortener/v1/url
+  
       - store_artifacts:
           path: /tmp/test-results
           destination: raw-test-output
@@ -40,52 +72,94 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
   
-  deploy:
+  deploy_backend:
     docker:
       - image: circleci/golang:1.12
     environment:
       GO111MODULE: "on"
-    working_directory: /go/src/github.com/w-k-s/short-url
+    working_directory: /go/src/github.com/w-k-s/short-url/backend
     steps:
       - checkout
-      - run: go get
+          path: /go/src/github.com/w-k-s/short-url
       - run:
-          name: Build Executable
-          command: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app *.go
+          name: docker build image
+          command: | 
+            docker build -t "wkas/short-url:$CIRCLE_BUILD_NUM" \
+            -t "wkas/short-url:latest" \
+            -t "$AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM" \
+            -t "$AWS_DOCKER_REPO/wkas/short-url:latest" \
+            .
+      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
-          name: Secure copy nginx.conf
-          command: scp -o StrictHostKeyChecking=no short-url.conf cicd@small.ml:/etc/nginx/conf.d
+          name: Login to docker hub
+          command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
       - run:
-          name: Kill application
-          command: ssh -o StrictHostKeyChecking=no cicd@small.ml "if pgrep app; then pkill app; fi"
+          name: docker push image
+          command: |
+            docker push "wkas/short-url:$CIRCLE_BUILD_NUM" \
+            docker push "wkas/short-url:latest"
       - run:
-          name: Secure copy app
-          command: scp -o StrictHostKeyChecking=no app cicd@small.ml:~/
+          name: aws push image
+          command: |
+              sudo apt-get -y -qq install awscli
+              $(aws ecr get-login --no-include-email --region ap-south-1)
+              docker push $AWS_DOCKER_REPO/wkas/short-url:latest
+              docker push $AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM
+  deploy_frontend:
+    docker:
+      - image: circleci/node:10.16.3
+    working_directory: /go/src/github.com/w-k-s/short-url/frontend
+    steps:
+      - checkout:
+          path: /go/src/github.com/w-k-s/short-url
       - run:
-          name: Restart application
-          command: ssh -o StrictHostKeyChecking=no cicd@small.ml DB_CONN_STRING=$DB_CONN_STRING APP_BUILD=$CIRCLE_BUILD_NUM nohup ~/app &
-          background: true
+          name: update-npm
+          command: 'sudo npm install -g npm@latest'
+      - restore_cache: # special step to restore the dependency cache
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          key: dependency-cache-{{ checksum "package-lock.json" }}
       - run:
-          name: Restart nginx server
-          command: ssh -o StrictHostKeyChecking=no cicd@small.ml "sudo /usr/sbin/service nginx restart"
+          name: Install Dependencies
+          command: npm install
+      - save_cache: # special step to save the dependency cache
+          key: dependency-cache-{{ checksum "package-lock.json" }}
+          paths:
+            - ./node_modules
+      - run: # run grunt in production mode
+          name: Built in production mode
+          command: grunt production
+      - run: # sync build dir with s3 bucket
+          name: Sync with S3 bucket
+          command: |
+              sudo apt-get -y -qq install awscli
+              aws s3 sync build s3://small.ml --region ap-south-1 --delete
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
           command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
       - run:
           name: docker build image
-          command: docker build -t "wkas/short-url:$CIRCLE_BUILD_NUM" -t "wkas/short-url:latest" .
+          command: docker build -t "wkas/short-url-frontend:$CIRCLE_BUILD_NUM" -t "wkas/short-url-frontend:latest" .
       - run:
           name: docker push image
-          command: docker push "wkas/short-url:$CIRCLE_BUILD_NUM"
+          command: docker push "wkas/short-url-frontend:$CIRCLE_BUILD_NUM"
+      - run:
+          name: docker push image
+          command: docker push "wkas/short-url-frontend:latest"
 workflows:
   version: 2
   deployment:
     jobs:
-      - build
-      - deploy:
+      - build_backend
+      - deploy_backend:
           requires:
-            - build
+            - build_backend
+          filters:
+            branches:
+              only: master
+      - deploy_frontend:
+          requires: # Deploy only when both services work
+            - build_backend
           filters:
             branches:
               only: master
