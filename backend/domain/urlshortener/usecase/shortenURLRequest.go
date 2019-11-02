@@ -9,22 +9,12 @@ import (
 )
 
 type ShortenURLRequest struct {
-	LongURL    string `json:"longUrl"`
-	ShortID    string `json:"ShortId"`
-	parsedURL  *url.URL
-	requestURL *url.URL
+	LongURL   string `json:"longUrl"`
+	ShortID   string `json:"ShortId"`
+	parsedURL *url.URL
 }
 
 func NewShortenURLRequest(req *http.Request) (ShortenURLRequest, domain.Err) {
-	scheme := req.URL.Scheme
-	if len(scheme) == 0 {
-		scheme = "https"
-	}
-
-	requestURL := &url.URL{
-		Scheme: scheme,
-		Host:   req.Host,
-	}
 
 	decoder := json.NewDecoder(req.Body)
 
@@ -56,10 +46,9 @@ func NewShortenURLRequest(req *http.Request) (ShortenURLRequest, domain.Err) {
 	}
 
 	return ShortenURLRequest{
-		LongURL:    shortenReq.LongURL,
-		ShortID:    shortenReq.ShortID,
-		parsedURL:  rawURL,
-		requestURL: requestURL,
+		LongURL:   shortenReq.LongURL,
+		ShortID:   shortenReq.ShortID,
+		parsedURL: rawURL,
 	}, nil
 }
 
@@ -69,8 +58,4 @@ func (s ShortenURLRequest) UserDidSpecifyShortId() bool {
 
 func (s ShortenURLRequest) ParsedURL() *url.URL {
 	return s.parsedURL
-}
-
-func (s ShortenURLRequest) RequestURL() *url.URL {
-	return s.requestURL
 }

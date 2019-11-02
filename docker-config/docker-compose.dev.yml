@@ -26,9 +26,9 @@ services:
     environment:
       ADDRESS: ":8080"
       DB_CONN_STRING: "postgres://shorturl:password@datastore:5432/url_shortener?sslmode=disable"
+      BASE_URL: http://localhost:8080/
     ports:
       - 8080:8080
-      - 4430:4430
     links:
       - datastore
     depends_on:

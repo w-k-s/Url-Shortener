@@ -9,19 +9,27 @@ import (
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
 var app *web.App
 var db *sql.DB
+var baseURL *url.URL
 
 func init() {
+	var err error
+
+	baseURL, err = url.Parse(os.Getenv("BASE_URL"))
+	if err != nil {
+		log.Fatalf("Failed to parse env variable 'BASE_URL': '%s'", os.Getenv("BASE_URL"))
+	}
+
 	connStr := os.Getenv("DB_CONN_STRING")
 	if len(connStr) == 0 {
 		log.Fatal("Connection String is required")
 	}
 
-	var err error
 	db, err = sql.Open("postgres", connStr)
 
 	if err != nil {
@@ -56,7 +64,7 @@ func configureHealthCheck() {
 func configureURLController() {
 	urlRepo := d.NewURLRepository(db, app.Logger())
 
-	shortenURLUseCase := usecase.NewShortenURLUseCase(urlRepo, usecase.DefaultShortIDGenerator{}, app.Logger())
+	shortenURLUseCase := usecase.NewShortenURLUseCase(urlRepo, baseURL, usecase.DefaultShortIDGenerator{}, app.Logger())
 	retrieveOriginalURLUseCase := usecase.NewRetrieveOriginalURLUseCase(urlRepo, app.Logger())
 
 	urlController := web.NewController(shortenURLUseCase, retrieveOriginalURLUseCase, app.Logger())

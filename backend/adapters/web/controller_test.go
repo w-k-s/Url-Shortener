@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -80,10 +81,13 @@ type ControllerSuite struct {
 
 func (suite *ControllerSuite) SetupTest() {
 	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
+
+	baseURL, _ := url.Parse("https://small.ml")
+
 	suite.generator = &MockShortIDGenerator{}
 
 	suite.urlRepo = &MockURLRepository{}
-	suite.shortenURLUseCase = usecase.NewShortenURLUseCase(suite.urlRepo, suite.generator, logger)
+	suite.shortenURLUseCase = usecase.NewShortenURLUseCase(suite.urlRepo, baseURL, suite.generator, logger)
 	suite.retrieveOriginalURLUseCase = usecase.NewRetrieveOriginalURLUseCase(suite.urlRepo, logger)
 	suite.controller = NewController(suite.shortenURLUseCase, suite.retrieveOriginalURLUseCase, logger)
 
