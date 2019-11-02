@@ -80,33 +80,30 @@ jobs:
     working_directory: /go/src/github.com/w-k-s/short-url
     steps:
       - checkout
-      - run: go get
       - run:
-          name: Build Executable
-          command: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app *.go
-      - run:
-          name: Secure copy app
-          command: scp -o StrictHostKeyChecking=no app cicd@small.ml:~/
-      - run:
-          name: Secure copy nginx.conf
-          command: scp -o StrictHostKeyChecking=no short-url.conf cicd@small.ml:/etc/nginx/conf.d
-      - run:
-          name: Restart application
-          command: ssh -o StrictHostKeyChecking=no cicd@small.ml lsof -ti :8080 | xargs --no-run-if-empty kill -9; DB_CONN_STRING=$DB_CONN_STRING APP_BUILD=$CIRCLE_BUILD_NUM nohup ~/app &
-          background: true
-      - run:
-          name: Restart nginx server
-          command: ssh -o StrictHostKeyChecking=no cicd@small.ml "sudo systemctl restart nginx.service"
+          name: docker build image
+          command: | 
+            docker build -t "wkas/short-url:$CIRCLE_BUILD_NUM" \
+            -t "wkas/short-url:latest" \
+            -t "$AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM" \
+            -t "$AWS_DOCKER_REPO/wkas/short-url:latest" \
+            .
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
           command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
       - run:
-          name: docker build image
-          command: docker build -t "wkas/short-url:$CIRCLE_BUILD_NUM" -t "wkas/short-url:latest" .
-      - run:
           name: docker push image
-          command: docker push "wkas/short-url:$CIRCLE_BUILD_NUM"
+          command: |
+            docker push "wkas/short-url:$CIRCLE_BUILD_NUM" \
+            docker push "wkas/short-url:latest"
+      - run:
+          name: aws push image
+          command: |
+              sudo apt-get -y -qq install awscli
+              $(aws ecr get-login --no-include-email --region ap-south-1)
+              docker push $AWS_DOCKER_REPO/wkas/short-url:latest
+              docker push $AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM
   deploy_frontend:
     docker:
       - image: circleci/node:10.16.3
