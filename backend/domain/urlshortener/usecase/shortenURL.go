@@ -11,13 +11,15 @@ import (
 
 type ShortenURLUseCase struct {
 	repo      u.URLRepository
+	baseURL   *url.URL
 	generator ShortIDGenerator
 	logger    *log.Logger
 }
 
-func NewShortenURLUseCase(repo u.URLRepository, generator ShortIDGenerator, logger *log.Logger) *ShortenURLUseCase {
+func NewShortenURLUseCase(repo u.URLRepository, baseURL *url.URL, generator ShortIDGenerator, logger *log.Logger) *ShortenURLUseCase {
 	return &ShortenURLUseCase{
 		repo,
+		baseURL,
 		generator,
 		logger,
 	}
@@ -29,7 +31,7 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 
 	if existingRecord != nil {
 		s.logger.Printf("Record found. Long Url: %s, shortURL: %s", longURL, existingRecord.ShortID)
-		return buildShortenedURLResponse(shortReq, existingRecord), nil
+		return s.buildShortenedURLResponse(shortReq, existingRecord), nil
 	}
 
 	if shortReq.UserDidSpecifyShortId() {
@@ -45,7 +47,7 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 				map[string]string{"error": err.Error()},
 			)
 		}
-		return buildShortenedURLResponse(shortReq, newRecord), nil
+		return s.buildShortenedURLResponse(shortReq, newRecord), nil
 	}
 
 	shortIDLengths := []ShortIDLength{VeryShort, Short, Medium, VeryLong}
@@ -73,15 +75,17 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 		)
 	}
 
-	return buildShortenedURLResponse(shortReq, newRecord), nil
+	return s.buildShortenedURLResponse(shortReq, newRecord), nil
 }
 
-func buildShortenedURLResponse(shortReq ShortenURLRequest, urlRecord *u.URLRecord) ShortenURLResponse {
+func (s *ShortenURLUseCase) buildShortenedURLResponse(shortReq ShortenURLRequest, urlRecord *u.URLRecord) ShortenURLResponse {
+
 	shortURL := &url.URL{
-		Scheme: shortReq.RequestURL().Scheme,
-		Host:   shortReq.RequestURL().Host,
+		Scheme: s.baseURL.Scheme,
+		Host:   s.baseURL.Host,
 		Path:   urlRecord.ShortID,
 	}
+
 	return ShortenURLResponse{
 		LongURL:  shortReq.LongURL,
 		ShortURL: shortURL.String(),
