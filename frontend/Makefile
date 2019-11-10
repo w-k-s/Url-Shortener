@@ -13,14 +13,14 @@ local: clean
 	npm run start
 
 docker-build-dev: clean
-	grunt
+	npm run build-dev
 	docker build -t $(IMAGE_NAME_DEV) .
 
 docker-start-dev: clean
 	docker run --name $(SHORT_URL_FRONTEND_IMAGE_NAME) -d -p 8081:8081 $(IMAGE_NAME_DEV=)
 
 docker-build-prod: clean
-	grunt production
+	npm run build-prod
 	docker build -t $(IMAGE_NAME) .
 
 docker-start-prod: docker-build-prod

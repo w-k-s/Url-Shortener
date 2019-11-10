@@ -79,8 +79,9 @@ jobs:
       GO111MODULE: "on"
     working_directory: /go/src/github.com/w-k-s/short-url/backend
     steps:
-      - checkout
+      - checkout:
           path: /go/src/github.com/w-k-s/short-url
+      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: docker build image
           command: | 
@@ -89,14 +90,13 @@ jobs:
             -t "$AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM" \
             -t "$AWS_DOCKER_REPO/wkas/short-url:latest" \
             .
-      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
-          command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+          command: echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
       - run:
           name: docker push image
           command: |
-            docker push "wkas/short-url:$CIRCLE_BUILD_NUM" \
+            docker push "wkas/short-url:$CIRCLE_BUILD_NUM"
             docker push "wkas/short-url:latest"
       - run:
           name: aws push image
@@ -108,10 +108,10 @@ jobs:
   deploy_frontend:
     docker:
       - image: circleci/node:10.16.3
-    working_directory: /go/src/github.com/w-k-s/short-url/frontend
+    working_directory: ~/project/frontend
     steps:
       - checkout:
-          path: /go/src/github.com/w-k-s/short-url
+          path: ~/project
       - run:
           name: update-npm
           command: 'sudo npm install -g npm@latest'
@@ -119,15 +119,10 @@ jobs:
           # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
           key: dependency-cache-{{ checksum "package-lock.json" }}
       - run:
-          name: Install Dependencies
-          command: npm install
-      - save_cache: # special step to save the dependency cache
-          key: dependency-cache-{{ checksum "package-lock.json" }}
-          paths:
-            - ./node_modules
-      - run: # run grunt in production mode
           name: Built in production mode
-          command: grunt production
+          command: |
+            npm install
+            npm run build-prod
       - run: # sync build dir with s3 bucket
           name: Sync with S3 bucket
           command: |
@@ -136,7 +131,7 @@ jobs:
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
-          command: docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+          command: echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
       - run:
           name: docker build image
           command: docker build -t "wkas/short-url-frontend:$CIRCLE_BUILD_NUM" -t "wkas/short-url-frontend:latest" .
