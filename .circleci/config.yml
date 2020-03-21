@@ -127,7 +127,7 @@ jobs:
           name: Sync with S3 bucket
           command: |
               sudo apt-get -y -qq install awscli
-              aws s3 sync build s3://small.ml --region ap-south-1 --delete
+              aws s3 sync build s3://shortest.ml --region ap-south-1 --delete
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub

@@ -1,4 +1,4 @@
-# small.ml Frontend
+# shortest.ml Frontend
 
 ### Setup Guide
 

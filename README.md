@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/w-k-s/UrlShortener.svg?style=svg)](https://circleci.com/gh/w-k-s/UrlShortener)
 
-Visit the website: [small.ml](https://small.ml)
+Visit the website: [shortest.ml](https://shortest.ml)
 
 ## Check List
 
