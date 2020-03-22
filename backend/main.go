@@ -24,6 +24,12 @@ func init() {
 	if err != nil {
 		log.Fatalf("Failed to parse env variable 'BASE_URL': '%s'", os.Getenv("BASE_URL"))
 	}
+	if len(baseURL.Scheme) == 0 {
+		log.Fatalf("Failed to determine scheme from BASE_URL %q", baseURL)
+	}
+	if len(baseURL.Host) == 0 {
+		log.Fatalf("Failed to determine host from BASE_URL %q", baseURL)
+	}
 
 	connStr := os.Getenv("DB_CONN_STRING")
 	if len(connStr) == 0 {
@@ -33,11 +39,11 @@ func init() {
 	db, err = sql.Open("postgres", connStr)
 
 	if err != nil {
-		log.Fatalf("Failed to open db with connection string %s: %s", connStr, err)
+		log.Fatalf("Failed to open db with connection string %q: %s", connStr, err)
 	}
 
 	if err = db.Ping(); err != nil {
-		log.Fatalf("Failed to ping db with connection string %s: %s", connStr, err)
+		log.Fatalf("Failed to ping db with connection string %q: %s", connStr, err)
 	}
 
 	app = web.Init()
