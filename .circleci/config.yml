@@ -56,6 +56,7 @@ jobs:
       - run:
           name: Start short-url service
           environment:
+            BASE_URL: "http://smallest.ml"
             DB_CONN_STRING: "postgres://shorturl:password@localhost:5432/url_shortener?sslmode=disable"
           command: ./app
           background: true
