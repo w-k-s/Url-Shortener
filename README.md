@@ -1,7 +1,7 @@
 # Short-url
 
 [![CircleCI](https://circleci.com/gh/w-k-s/UrlShortener.svg?style=svg)](https://circleci.com/gh/w-k-s/UrlShortener)
-[![Go Report Card](https://goreportcard.com/badge/github.com/w-k-s/UrlShortener)](https://goreportcard.com/badge/github.com/w-k-s/UrlShortener)
+[![Go Report Card](https://goreportcard.com/badge/github.com/w-k-s/UrlShortener)](https://goreportcard.com/report/github.com/w-k-s/UrlShortener)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Visit the website: [shortest.ml](https://shortest.ml)
