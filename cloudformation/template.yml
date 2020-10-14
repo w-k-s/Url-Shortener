@@ -1,0 +1,366 @@
+# https://github.com/1Strategy/fargate-cloudformation-example/blob/master/fargate.yaml
+Parameters:
+    VPC:
+      Type: AWS::EC2::VPC::Id
+    PublicSubnetA:
+      Type: AWS::EC2::Subnet::Id
+    PublicSubnetB:
+      Type: AWS::EC2::Subnet::Id
+    PrivateSubnetA:
+        Type: AWS::EC2::Subnet::Id
+    PrivateSubnetB:
+        Type: AWS::EC2::Subnet::Id
+    Certificate:
+      Type: String
+      Description: The certificate ARN from Certificate Manager, which must exist in the same region.
+    Image:
+      Type: String
+      Description: Docker image. You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag).
+    ServiceName:
+      Type: String
+      Description: The name of the service
+    ContainerPort:
+      Type: Number
+      Description: Port on which the application listens within the docker container
+      Default: 80
+    LoadBalancerPort:
+      Type: Number
+      Default: 443
+    HealthCheckPath:
+      Type: String
+    HostedZoneName:
+      Type: String
+      Description: Domain name for your website (example.com)
+    Subdomain:
+      Type: String
+      Default: ''
+    DatabaseConnectionString:
+      Type: String
+      Description: Database Connection String
+    DatabasePort:
+        Type: Number
+        Description: Database Port
+    DatabaseSecurityGroup:
+        Type: AWS::EC2::SecurityGroup::Id
+        Description: Security Group Id of the RDS instance. This allows the container to send and receive data from and to the RDS instance. e.g. sg-a123fd85
+    BaseUrl:
+        Type: String
+        Description: Base URL prepended to the short code ID e.g. in https://goo.gl/abc-123, https://goo.gl is the base url
+    IsProduction:
+        Type: Number
+        Default: 1
+        AllowedValues:
+            - 0
+            - 1
+
+Resources:
+# Workloads
+
+  # Similar to a pod template in kubernetes
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    # Makes sure the log group is created before it is used.
+    DependsOn: [ LogGroup, ContainerRepository ]
+    Properties:
+        # Name of the task definition. Subsequent versions of the task definition are grouped together under this name.
+        Family: !Join ['', [!Ref ServiceName, '-',TaskDefinition]]
+        # awsvpc is required for Fargate
+        NetworkMode: awsvpc
+        RequiresCompatibilities:
+            - FARGATE
+        Cpu: 512
+        Memory: 1GB
+        # A role needed by ECS e.g. to pull images, sends logs to cloudwatch e.t.c
+        # "The ARN of the task execution role that containers in this task can assume. All containers in this task are granted the permissions that are specified in this role."
+        # "There is an optional task execution IAM role that you can specify with Fargate to allow your Fargate tasks to make API calls to Amazon ECR."
+        ExecutionRoleArn: !Ref ExecutionRole
+        # "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that grants containers in the task permission to call AWS APIs on your behalf."
+        # In simpler words: permissions for the container e.g. upload a file to a bucket
+        TaskRoleArn: !Ref TaskRole
+        ContainerDefinitions:
+        - Name: !Ref ServiceName
+            Image: !Ref Image
+            PortMappings:
+            - ContainerPort: !Ref ContainerPort
+            # ECS offers integration with CloudWatch logs through an awslogs driver that can be enabled in the container definition.
+            LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                    awslogs-region: !Ref AWS::Region
+                    awslogs-group: !Ref LogGroup
+                    awslogs-stream-prefix: ecs
+            Environment:
+                - Key: ADDRESS
+                  Value: !Join ['', ['0.0.0.0:', !Ref ContainerPort]]
+                - Key: BASE_URL
+                  Value: !Ref BaseUrl
+                - Key: DB_CONN_STRING
+                  Value: !Ref DatabaseConnectionString
+                - Key: PROD
+                  Value: !Ref IsProduction
+  
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+        ClusterName: !Join ['', [!Ref ServiceName, '-',Cluster]]
+
+  Service:
+    Type: AWS::ECS::Service
+    # This dependency is needed so that the load balancer is setup correctly in time
+    DependsOn:
+        - ListenerHTTPS
+    Properties: 
+        ServiceName: !Join ['', [!Ref ServiceName, '-',Service]]
+        Cluster: !Ref Cluster
+        TaskDefinition: !Ref TaskDefinition
+        # Controls how many tasks run during the deployment and the ordering of stopping and starting tasks. 
+        DeploymentConfiguration:
+            # number of tasks in a service that must remain in the RUNNING state during a rolling update
+            # In this case, all tasks must remain in RUNNING state during deployment.
+            MinimumHealthyPercent: 100
+            # upper limit on the number of tasks in a service that are allowed
+            MaximumPercent: 200
+        # Task counts
+        DesiredCount: 1
+        # Grace period to wait before trying to poll health check url
+        HealthCheckGracePeriodSeconds: 30
+        LaunchType: FARGATE
+        NetworkConfiguration: 
+            AwsvpcConfiguration:
+                # change to DISABLED if you're using private subnets that have access to a NAT gateway
+                AssignPublicIp: ENABLED
+                Subnets:
+                - !Ref PrivateSubnetA
+                - !Ref PrivateSubnetB
+                SecurityGroups:
+                - !Ref ContainerSecurityGroup
+                - !Ref DatabaseSecurityGroup
+        LoadBalancers:
+        - ContainerName: !Ref ServiceName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: !Join [!Ref ServiceName, ['.sg', '.container']]
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: !Ref DatabasePort
+          ToPort: !Ref DatabasePort
+          SourceSecurityGroupId: !Ref DatabaseSecurityGroup
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          DestinationSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: !Ref DatabasePort
+          ToPort: !Ref DatabasePort
+          DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
+        
+
+# API Load Balancer
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+        HealthCheckIntervalSeconds: 10
+        # will look for a 200 status code by default unless specified otherwise
+        HealthCheckPath: !Ref HealthCheckPath
+        HealthCheckTimeoutSeconds: 5
+        UnhealthyThresholdCount: 2
+        HealthyThresholdCount: 2
+        Name: !Join ['', [!Ref ServiceName, '-',TargetGroup]]
+        Port: !Ref ContainerPort
+        Protocol: HTTP
+        TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+            Value: 60 # default is 300
+        TargetType: ip
+        VpcId: !Ref VPC
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+        LoadBalancerAttributes:
+        # this is the default, but is specified here in case it needs to be changed
+        - Key: idle_timeout.timeout_seconds
+            Value: 60
+        Name: !Join ['', [!Ref ServiceName, '-',LoadBalancer]]
+        # "internal" is also an option
+        Scheme: internet-facing
+        SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+        Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+
+  ListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+        DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+        # The Amazon Resource Name (ARN) of the load balancer
+        LoadBalancerArn: !Ref LoadBalancer
+        Port: !Ref LoadBalancerPort
+        Protocol: HTTPS
+        Certificates:
+        - CertificateArn: !Ref Certificate
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: !Join ['', [!Ref ServiceName,'-', LoadBalancerSecurityGroup]]
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+            FromPort: !Ref LoadBalancerPort
+            ToPort: !Ref LoadBalancerPort
+            CidrIp: 0.0.0.0/0
+
+# S3 Website
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ['', [!Ref ServiceName,'-','Frontend']]
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+        PolicyDocument:
+            Id: !Join ['', [!Ref ServiceName,'-','FrontendPolicy']]
+            Version: "2012-10-17"
+            Statement:
+                - Sid: PublicReadForGetBucketObjects
+                Effect: Allow
+                Principal: '*'
+                Action: 's3:GetObject'
+                Resource: !Join ['',['arn:aws:s3:::',!Ref FrontendBucket,/*]]
+        Bucket: !Ref FrontendBucket
+
+# Cloud Formation
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-s3.html
+        - Id: FrontendOrigin
+          DomainName: !GetAtt 'FrontendBucket.WebsiteURL'
+          S3OriginConfig:
+            OriginAccessIdentity: ''
+        - Id: BackendOrigin
+          DomainName: !GetAtt 'LoadBalancer.DNSName'
+          CustomOriginConfig:
+            HTTPPort: '80'
+            HTTPSPort: '443'
+            OriginProtocolPolicy: https-only
+        Enabled: 'true'
+        DefaultRootObject: index.html
+        Logging:
+          IncludeCookies: 'false'
+          Bucket: !Ref FrontendBucket
+          Prefix: !Join ['', [!Ref ServiceName, Frontend]]
+        DefaultCacheBehavior:
+          TargetOriginId: FrontendOrigin
+          ForwardedValues:
+            QueryString: 'true'
+            Cookies:
+              Forward: all
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+        - AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          TargetOriginId: FrontendOrigin
+          ForwardedValues:
+            QueryString: 'true'
+            Cookies:
+              Forward: all
+          ViewerProtocolPolicy: redirect-to-https
+          PathPattern: /
+        - AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          - POST
+          TargetOriginId: BackendOrigin
+          ForwardedValues:
+            QueryString: 'true'
+            Cookies:
+              Forward: all
+          ViewerProtocolPolicy: redirect-to-https
+          PathPattern: /urlshortener/*
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'false'
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2019
+          IamCertificateId: TODO
+
+# DNS
+
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Join ['', [!Ref HostedZoneName, .]]
+      Name: !Join ['', [!Ref Subdomain, ., !Ref HostedZoneName, .]]
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+
+# IAM Roles
+
+  # Role needed by ECS to run a task
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['', [!Ref ServiceName, ExecutionRole]]
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+
+  # A role for the containers
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['', [!Ref ServiceName, TaskRole]]
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+# Logging
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+        LogGroupName: !Join ['', [/ecs/, !Ref ServiceName, TaskDefinition]]
+        RetentionInDays: 30
+
+# Outputs
+
+Outputs:
+    ContainerSecurityGroup:
+        Description: Container Security Group. The Database should be able to accept traffic from this port and to send data to it as well.
+        Value: !Ref ContainerSecurityGroup
