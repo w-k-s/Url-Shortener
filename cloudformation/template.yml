@@ -2,6 +2,7 @@
 Parameters:
   VPC:
     Type: AWS::EC2::VPC::Id
+    Description: VPC Id. VPC's private subnets must have a NAT Gateway to download container image.
   PublicSubnetA:
     Type: AWS::EC2::Subnet::Id
   PublicSubnetB:
@@ -10,9 +11,12 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
   PrivateSubnetB:
     Type: AWS::EC2::Subnet::Id
-  Certificate:
+  IamCertificateArn:
     Type: String
-    Description: The certificate ARN from Certificate Manager, which must exist in the same region.
+    Description: The IAM Certificate Arn, which must exist in the same region (Load balancer)
+  IamCertificateId:
+    Type: String
+    Description: The IAM Certificate Id, which must exist in the same region (Cloud front)
   Image:
     Type: String
     Description: Docker image. You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag).
@@ -23,9 +27,15 @@ Parameters:
     Type: Number
     Description: Port on which the application listens within the docker container
     Default: 80
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group of the container. Container must be able to send/receive from loadbalancer and db.
   LoadBalancerPort:
     Type: Number
     Default: 443
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group of the load balancer. Load Balancer must be able to send receive traffic from public and container.
   HealthCheckPath:
     Type: String
   HostedZoneName:
@@ -41,9 +51,6 @@ Parameters:
     Type: Number
     Description: Database Port
     Default: 5432
-  DatabaseSecurityGroup:
-    Type: AWS::EC2::SecurityGroup::Id
-    Description: Security Group Id of the RDS instance. This allows the container to send and receive data from and to the RDS instance. e.g. sg-a123fd85
   BaseUrl:
     Type: String
     Description: Base URL prepended to the short code ID e.g. in https://goo.gl/abc-123, https://goo.gl is the base url
@@ -135,35 +142,10 @@ Resources:
             - !Ref PrivateSubnetB
           SecurityGroups:
             - !Ref ContainerSecurityGroup
-            - !Ref DatabaseSecurityGroup
       LoadBalancers:
         - ContainerName: !Ref ServiceName
           ContainerPort: !Ref ContainerPort
           TargetGroupArn: !Ref TargetGroup
-
-  ContainerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: !Join ["", [!Ref ServiceName, ".sg", ".container"]]
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref ContainerPort
-          ToPort: !Ref ContainerPort
-          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-        - IpProtocol: tcp
-          FromPort: !Ref DatabasePort
-          ToPort: !Ref DatabasePort
-          SourceSecurityGroupId: !Ref DatabaseSecurityGroup
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: !Ref ContainerPort
-          ToPort: !Ref ContainerPort
-          DestinationSecurityGroupId: !Ref LoadBalancerSecurityGroup
-        - IpProtocol: tcp
-          FromPort: !Ref DatabasePort
-          ToPort: !Ref DatabasePort
-          DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
 
   # API Load Balancer
 
@@ -212,25 +194,14 @@ Resources:
       Port: !Ref LoadBalancerPort
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !Ref Certificate
-
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription:
-        !Join ["", [!Ref ServiceName, "-", "LoadBalancerSecurityGroup"]]
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref LoadBalancerPort
-          ToPort: !Ref LoadBalancerPort
-          CidrIp: 0.0.0.0/0
+        - CertificateArn: !Ref IamCertificateArn
 
   # S3 Website
 
   FrontendBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketName: !Ref HostedZoneName
       AccessControl: PublicRead
       WebsiteConfiguration:
         IndexDocument: index.html
@@ -251,14 +222,21 @@ Resources:
 
   # Cloud Formation
 
+  CloudfrontAccessLogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !Join ["", [!Ref ServiceName, ".", "cloudfront", ".", "accesslogs"]]
+
   Distribution:
     Type: AWS::CloudFront::Distribution
+    DependsOn: [CloudfrontAccessLogBucket]
     Properties:
       DistributionConfig:
         Origins:
           # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-s3.html
           - Id: FrontendOrigin
-            DomainName: !GetAtt "FrontendBucket.WebsiteURL"
+            DomainName: !GetAtt "FrontendBucket.DomainName"
             S3OriginConfig:
               OriginAccessIdentity: ""
           - Id: BackendOrigin
@@ -271,8 +249,8 @@ Resources:
         DefaultRootObject: index.html
         Logging:
           IncludeCookies: "false"
-          Bucket: !Ref FrontendBucket
-          Prefix: !Join ["", [!Ref ServiceName, "Frontend"]]
+          Bucket: !GetAtt "CloudfrontAccessLogBucket.DomainName"
+          Prefix: !Join ["", [!Ref ServiceName, ".access"]]
         DefaultCacheBehavior:
           TargetOriginId: FrontendOrigin
           ForwardedValues:
@@ -282,6 +260,10 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
         CacheBehaviors:
           - AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+            CachedMethods:
               - GET
               - HEAD
               - OPTIONS
@@ -293,10 +275,13 @@ Resources:
             ViewerProtocolPolicy: redirect-to-https
             PathPattern: /
           - AllowedMethods:
-              - GET
               - HEAD
-              - OPTIONS
+              - DELETE
               - POST
+              - GET
+              - OPTIONS
+              - PUT
+              - PATCH
             TargetOriginId: BackendOrigin
             ForwardedValues:
               QueryString: "true"
@@ -305,22 +290,21 @@ Resources:
             ViewerProtocolPolicy: redirect-to-https
             PathPattern: /urlshortener/*
         ViewerCertificate:
-          CloudFrontDefaultCertificate: "false"
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.2_2019
-          IamCertificateId: TODO
+          IamCertificateId: !Ref IamCertificateId
 
   # DNS
-
+  # Hosted zone needs to exist before hand
   DNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneName: !Join ["", [!Ref HostedZoneName, .]]
-      Name: !Join ["", [!Ref Subdomain, ., !Ref HostedZoneName, .]]
+      Name: !Ref HostedZoneName
       Type: A
       AliasTarget:
-        DNSName: !GetAtt LoadBalancer.DNSName
-        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+        DNSName: !GetAtt Distribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
 
   # IAM Roles
 
@@ -357,10 +341,3 @@ Resources:
     Properties:
       LogGroupName: !Join ["", [/ecs/, !Ref ServiceName, "TaskDefinition"]]
       RetentionInDays: 30
-
-# Outputs
-
-Outputs:
-  ContainerSecurityGroup:
-    Description: Container Security Group. The Database should be able to accept traffic from this port and to send data to it as well.
-    Value: !Ref ContainerSecurityGroup
