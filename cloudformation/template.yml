@@ -1,4 +1,9 @@
 # https://github.com/1Strategy/fargate-cloudformation-example/blob/master/fargate.yaml
+# https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesDomainName
+# https://aws.amazon.com/premiumsupport/knowledge-center/s3-http-307-response/
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-s3.html
+# https://docs.aws.amazon.com/general/latest/gr/s3.html#s3_website_region_endpoints
+
 Parameters:
   VPC:
     Type: AWS::EC2::VPC::Id
@@ -193,15 +198,17 @@ Resources:
           Type: forward
       # The Amazon Resource Name (ARN) of the load balancer
       LoadBalancerArn: !Ref LoadBalancer
-      Port: 80
-      Protocol: HTTP
+      Port: !Ref LoadBalancerPort
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref IamCertificateArn
 
   # S3 Website
 
   FrontendBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref HostedZoneName
+      BucketName: !Join ["", ["www.", !Ref HostedZoneName]]
       AccessControl: PublicRead
       WebsiteConfiguration:
         IndexDocument: index.html
@@ -220,7 +227,7 @@ Resources:
             Resource: !Join ["", ["arn:aws:s3:::", !Ref FrontendBucket, "/*"]]
       Bucket: !Ref FrontendBucket
 
-  # Cloud Formation
+  # Cloudfront
 
   CloudfrontAccessLogBucket:
     Type: AWS::S3::Bucket
@@ -236,126 +243,30 @@ Resources:
         Origins:
           # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-s3.html
           - Id: FrontendOrigin
-            DomainName: !GetAtt "FrontendBucket.DomainName"
+            DomainName: !GetAtt "FrontendBucket.RegionalDomainName"
             S3OriginConfig:
               OriginAccessIdentity: ""
-          - Id: BackendOrigin
-            DomainName: !GetAtt "LoadBalancer.DNSName"
-            CustomOriginConfig:
-              HTTPPort: "80"
-              HTTPSPort: "443"
-              OriginProtocolPolicy: https-only
         Enabled: "true"
         DefaultRootObject: index.html
+        PriceClass: PriceClass_200
+        Aliases:
+          - www.kurtz.ml
         Logging:
           IncludeCookies: "false"
           Bucket: !GetAtt "CloudfrontAccessLogBucket.DomainName"
           Prefix: !Join ["", [!Ref ServiceName, ".access"]]
         DefaultCacheBehavior:
-          TargetOriginId: BackendOrigin
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          TargetOriginId: FrontendOrigin
           ForwardedValues:
             QueryString: "true"
             Cookies:
               Forward: all
           ViewerProtocolPolicy: redirect-to-https
-        CacheBehaviors:
-          - AllowedMethods:
-              - HEAD
-              - GET
-              - OPTIONS
-            CachedMethods:
-              - GET
-              - HEAD
-              - OPTIONS
-            TargetOriginId: FrontendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /
-          - AllowedMethods:
-              - HEAD
-              - GET
-              - OPTIONS
-            CachedMethods:
-              - GET
-              - HEAD
-              - OPTIONS
-            TargetOriginId: FrontendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /*.html
-          - AllowedMethods:
-              - HEAD
-              - GET
-              - OPTIONS
-            CachedMethods:
-              - GET
-              - HEAD
-              - OPTIONS
-            TargetOriginId: FrontendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /*.js
-          - AllowedMethods:
-              - HEAD
-              - GET
-              - OPTIONS
-            CachedMethods:
-              - GET
-              - HEAD
-              - OPTIONS
-            TargetOriginId: FrontendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /*.css
-          - AllowedMethods:
-              - HEAD
-              - DELETE
-              - POST
-              - GET
-              - OPTIONS
-              - PUT
-              - PATCH
-            TargetOriginId: BackendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /urlshortener/*
-          - AllowedMethods:
-              - GET
-              - HEAD
-              - OPTIONS
-            TargetOriginId: BackendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /health
-          - AllowedMethods:
-              - GET
-              - HEAD
-              - OPTIONS
-            TargetOriginId: BackendOrigin
-            ForwardedValues:
-              QueryString: "true"
-              Cookies:
-                Forward: all
-            ViewerProtocolPolicy: redirect-to-https
-            PathPattern: /*
+          Compress: true
         ViewerCertificate:
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.2_2019
@@ -363,15 +274,21 @@ Resources:
 
   # DNS
   # Hosted zone needs to exist before hand
-  DNSRecord:
-    Type: AWS::Route53::RecordSet
+  RecordSetGroup:
+    Type: AWS::Route53::RecordSetGroup
     Properties:
       HostedZoneName: !Join ["", [!Ref HostedZoneName, .]]
-      Name: !Ref HostedZoneName
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt Distribution.DomainName
-        HostedZoneId: Z2FDTNDATAQYW2
+      RecordSets:
+        - Name: !Join ["", [!Ref HostedZoneName, .]]
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+            DNSName: !GetAtt LoadBalancer.DNSName
+        - Name: !Join ["", ["www.", !Ref HostedZoneName, .]]
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            HostedZoneId: Z2FDTNDATAQYW2
 
   # IAM Roles
 
