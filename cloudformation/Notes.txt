@@ -1,3 +1,0 @@
-TODO: 
-- [ ] Cloudformation only accepts ACM certificates from US/EU regions
-        - So we will need to pass the certificate ARN as a parameter
