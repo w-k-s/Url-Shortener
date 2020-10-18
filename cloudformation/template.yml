@@ -29,7 +29,7 @@ Parameters:
     Default: 80
   ContainerSecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
-    Description: Security Group of the container. Container must be able to send/receive from loadbalancer and db.
+    Description: Security Group of the container. Container must be able to send/receive from loadbalancer and db + (only) send https traffic to ECR
   LoadBalancerPort:
     Type: Number
     Default: 443
@@ -138,8 +138,10 @@ Resources:
           # change to DISABLED if you're using private subnets that have access to a NAT gateway
           AssignPublicIp: ENABLED
           Subnets:
-            - !Ref PrivateSubnetA
-            - !Ref PrivateSubnetB
+            # Should be private but I'd need to setup a NAT gateway to downloa the image.
+            # Setting up a NAT gateway would be too expensive.
+            - !Ref PublicSubnetA
+            - !Ref PublicSubnetB
           SecurityGroups:
             - !Ref ContainerSecurityGroup
       LoadBalancers:
@@ -191,10 +193,8 @@ Resources:
           Type: forward
       # The Amazon Resource Name (ARN) of the load balancer
       LoadBalancerArn: !Ref LoadBalancer
-      Port: !Ref LoadBalancerPort
-      Protocol: HTTPS
-      Certificates:
-        - CertificateArn: !Ref IamCertificateArn
+      Port: 80
+      Protocol: HTTP
 
   # S3 Website
 
@@ -252,7 +252,7 @@ Resources:
           Bucket: !GetAtt "CloudfrontAccessLogBucket.DomainName"
           Prefix: !Join ["", [!Ref ServiceName, ".access"]]
         DefaultCacheBehavior:
-          TargetOriginId: FrontendOrigin
+          TargetOriginId: BackendOrigin
           ForwardedValues:
             QueryString: "true"
             Cookies:
@@ -276,6 +276,51 @@ Resources:
             PathPattern: /
           - AllowedMethods:
               - HEAD
+              - GET
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            TargetOriginId: FrontendOrigin
+            ForwardedValues:
+              QueryString: "true"
+              Cookies:
+                Forward: all
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /*.html
+          - AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            TargetOriginId: FrontendOrigin
+            ForwardedValues:
+              QueryString: "true"
+              Cookies:
+                Forward: all
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /*.js
+          - AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            TargetOriginId: FrontendOrigin
+            ForwardedValues:
+              QueryString: "true"
+              Cookies:
+                Forward: all
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /*.css
+          - AllowedMethods:
+              - HEAD
               - DELETE
               - POST
               - GET
@@ -289,6 +334,28 @@ Resources:
                 Forward: all
             ViewerProtocolPolicy: redirect-to-https
             PathPattern: /urlshortener/*
+          - AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            TargetOriginId: BackendOrigin
+            ForwardedValues:
+              QueryString: "true"
+              Cookies:
+                Forward: all
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /health
+          - AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            TargetOriginId: BackendOrigin
+            ForwardedValues:
+              QueryString: "true"
+              Cookies:
+                Forward: all
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /*
         ViewerCertificate:
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.2_2019
