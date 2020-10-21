@@ -155,7 +155,7 @@ jobs:
           command: |
             sudo apt-get update -y
             sudo apt-get -y -qq install awscli
-            aws s3 sync build s3://$HOSTED_ZONE_NAME --region $AWS_REGION --delete
+            aws s3 sync build s3://www.$HOSTED_ZONE_NAME --delete --region $AWS_REGION
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
@@ -169,6 +169,18 @@ jobs:
       - run:
           name: docker push image
           command: docker push "wkas/short-url-frontend:latest"
+
+  delete_stack:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - run: # sync build dir with s3 bucket
+          name: Delete CloudFormation stack
+          command: |
+            sudo apt-get update -y
+            sudo apt-get -y -qq install awscli
+            aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
+            aws cloudformation stack-delete-complete --stack-name $STACK_NAME  --region $AWS_REGION
 
 workflows:
   version: 2
@@ -191,3 +203,31 @@ workflows:
               only:
                 - master
                 - feat/infrastructure-as-code
+
+  scheduled_stack_creation:
+    jobs:
+      - build_backend
+      - deploy_backend:
+          requires:
+            - build_backend
+      - deploy_frontend:
+          requires:
+            - deploy_backend
+    triggers:
+      - schedule:
+          cron: "0 14 * * *"
+          filters:
+            branches:
+              only:
+                - master
+
+  scheduled_stack_deletion:
+    jobs:
+      - delete_stack
+    triggers:
+      - schedule:
+          cron: "0 18 * * *"
+          filters:
+            branches:
+              only:
+                - master
