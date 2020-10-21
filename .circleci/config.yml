@@ -12,7 +12,7 @@ jobs:
     environment:
       TEST_RESULTS: /tmp/test-results
       GO111MODULE: "on"
-      
+
     working_directory: /go/src/github.com/w-k-s/short-url/backend
     steps:
       - checkout:
@@ -38,6 +38,7 @@ jobs:
       - run:
           name: Install postgresql-client; Import dummy data; run an example query
           command: |
+            sudo apt-get update -y
             sudo apt install -y postgresql-client || true
             PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener < ../docker-config/data/schema.sql
             PGPASSWORD=password psql -U shorturl -h 127.0.0.1 url_shortener -c "select * from public.url_records"
@@ -65,14 +66,14 @@ jobs:
           command: |
             sleep 5
             curl --retry 10 --retry-delay 1 -X POST --header "Content-Type: application/json" -d '{"longUrl":"www.example.com"}' http://localhost:8080/urlshortener/v1/url
-  
+
       - store_artifacts:
           path: /tmp/test-results
           destination: raw-test-output
 
       - store_test_results:
           path: /tmp/test-results
-  
+
   deploy_backend:
     docker:
       - image: circleci/golang:1.12
@@ -85,7 +86,7 @@ jobs:
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: docker build image
-          command: | 
+          command: |
             docker build -t "wkas/short-url:$CIRCLE_BUILD_NUM" \
             -t "wkas/short-url:latest" \
             -t "$AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM" \
@@ -102,10 +103,35 @@ jobs:
       - run:
           name: aws push image
           command: |
-              sudo apt-get -y -qq install awscli
-              $(aws ecr get-login --no-include-email --region ap-south-1)
-              docker push $AWS_DOCKER_REPO/wkas/short-url:latest
-              docker push $AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM
+            sudo apt-get update -y
+            sudo apt-get -y -qq install awscli
+            $(aws ecr get-login --no-include-email --region ap-south-1)
+            docker push $AWS_DOCKER_REPO/wkas/short-url:latest
+            docker push $AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM
+      - run:
+          name: Create or update cloudformation stack
+          command: |
+            aws cloudformation deploy --template-file ../cloudformation/template.yml \
+              --stack-name $STACK_NAME \
+              --parameter-overrides \
+                  VPC=$VPC_ID \
+                  PublicSubnetA=$PUBLIC_SUBNET_A \
+                  PublicSubnetB=$PUBLIC_SUBNET_B \
+                  PrivateSubnetA=$PRIVATE_SUBNET_A \
+                  PrivateSubnetB=$PRIVATE_SUBNET_B \
+                  IamCertificateArn=$IAM_CERTIFICATE_ARN \
+                  IamCertificateId=$IAM_CERTIFICATE_ID \
+                  Image=$AWS_DOCKER_REPO/wkas/short-url:$CIRCLE_BUILD_NUM \
+                  ServiceName=$SERVICE_NAME \
+                  HealthCheckPath=$HEALTH_CHECK_PATH \
+                  HostedZoneName=$HOSTED_ZONE_NAME \
+                  DatabaseConnectionString=$DATABASE_CONNECTION_STRING \
+                  ContainerSecurityGroup=$CONTAINER_SECURITY_GROUP \
+                  LoadBalancerSecurityGroup=$LOAD_BALANCER_SECURITY_GROUP \
+                  BaseUrl=$BASE_URL  \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --region $AWS_REGION
+
   deploy_frontend:
     docker:
       - image: circleci/node:10.16.3
@@ -115,7 +141,7 @@ jobs:
           path: ~/project
       - run:
           name: update-npm
-          command: 'sudo npm install -g npm@latest'
+          command: "sudo npm install -g npm@latest"
       - restore_cache: # special step to restore the dependency cache
           # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
           key: dependency-cache-{{ checksum "package-lock.json" }}
@@ -127,8 +153,9 @@ jobs:
       - run: # sync build dir with s3 bucket
           name: Sync with S3 bucket
           command: |
-              sudo apt-get -y -qq install awscli
-              aws s3 sync build s3://shortest.ml --region ap-south-1 --delete
+            sudo apt-get update -y
+            sudo apt-get -y -qq install awscli
+            aws s3 sync build s3://$HOSTED_ZONE_NAME --region $AWS_REGION --delete
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - run:
           name: Login to docker hub
@@ -142,6 +169,7 @@ jobs:
       - run:
           name: docker push image
           command: docker push "wkas/short-url-frontend:latest"
+
 workflows:
   version: 2
   deployment:
@@ -152,10 +180,14 @@ workflows:
             - build_backend
           filters:
             branches:
-              only: master
+              only:
+                - master
+                - feat/infrastructure-as-code
       - deploy_frontend:
           requires: # Deploy only when both services work
-            - build_backend
+            - deploy_backend
           filters:
             branches:
-              only: master
+              only:
+                - master
+                - feat/infrastructure-as-code
