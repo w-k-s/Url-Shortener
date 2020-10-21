@@ -95,7 +95,35 @@ aws cloudformation create-stack --stack-name short-url \
 
 - The `Arn` field's value is provided to the LoadBalancer and the `ServerCertificateId` field's value is provided to Cloudfront.
 
-## 3. Notes & Future Improvements
+## 3. IAM Permissions
+
+The minimal set of IAM permissions to run the template file are specified in the policy below:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VisualEditor0",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:DetachRolePolicy",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:AttachRolePolicy",
+        "logs:PutRetentionPolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::<AccountId>:role/*",
+        "arn:aws:logs:*:<AccountId>:log-group:*"
+      ]
+    }
+  ]
+}
+```
+
+## 4. Notes & Future Improvements
 
 1. The Fargate containers run on the public subnet (meaning the parameters `PrivateSubnetA` and `PrivateSubnetB` are unused). This is because the Fargate contaienrs need to download the image and therefore, if they were in a private subnet, a NAT gateway would be needed for the network connectivity. Rather than pay for a NAT Gateway, I'm running the Fargate containers in the public subnet.
 

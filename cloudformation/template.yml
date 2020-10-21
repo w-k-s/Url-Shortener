@@ -324,4 +324,3 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Join ["", [/ecs/, !Ref ServiceName, "TaskDefinition"]]
-      RetentionInDays: 30
