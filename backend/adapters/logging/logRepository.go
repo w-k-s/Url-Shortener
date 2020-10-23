@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
+	"github.com/w-k-s/short-url/log"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 )
@@ -31,14 +31,12 @@ func (lr logRecord) String() string {
 }
 
 type LogRepository struct {
-	db     *sql.DB
-	logger *log.Logger
+	db *sql.DB
 }
 
-func NewLogRepository(db *sql.DB, logger *log.Logger) *LogRepository {
+func NewLogRepository(db *sql.DB) *LogRepository {
 	return &LogRepository{
-		db:     db,
-		logger: logger,
+		db: db,
 	}
 }
 
@@ -54,7 +52,7 @@ func (lr *LogRepository) LogRequest(r *http.Request) *logRecord {
 
 func (lr *LogRepository) LogResponse(sw *StatusWriter, record *logRecord) error {
 	record.Status = sw.Status()
-	lr.logger.Println(record.String())
+	log.Printf(record.String())
 
 	_, err := lr.db.Exec(
 		`INSERT INTO logs (method,uri,ip_address,status,body,create_time) VALUES ($1,$2,$3,$4,$5,$6)`,

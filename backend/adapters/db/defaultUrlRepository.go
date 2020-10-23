@@ -6,18 +6,15 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"log"
 )
 
 type DefaultURLRepository struct {
-	db     *sql.DB
-	logger *log.Logger
+	db *sql.DB
 }
 
-func NewURLRepository(db *sql.DB, logger *log.Logger) *DefaultURLRepository {
+func NewURLRepository(db *sql.DB) *DefaultURLRepository {
 	return &DefaultURLRepository{
-		db:     db,
-		logger: logger,
+		db: db,
 	}
 }
 

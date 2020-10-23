@@ -4,19 +4,16 @@ import (
 	"fmt"
 	"github.com/w-k-s/short-url/domain"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"log"
 	"net/url"
 )
 
 type RetrieveOriginalURLUseCase struct {
-	repo   u.URLRepository
-	logger *log.Logger
+	repo u.URLRepository
 }
 
-func NewRetrieveOriginalURLUseCase(repo u.URLRepository, logger *log.Logger) *RetrieveOriginalURLUseCase {
+func NewRetrieveOriginalURLUseCase(repo u.URLRepository) *RetrieveOriginalURLUseCase {
 	return &RetrieveOriginalURLUseCase{
 		repo,
-		logger,
 	}
 }
 

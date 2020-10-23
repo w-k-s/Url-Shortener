@@ -109,8 +109,8 @@ Resources:
               Value: !Ref BaseUrl
             - Name: DB_CONN_STRING
               Value: !Ref DatabaseConnectionString
-            - Name: PROD
-              Value: !Ref IsProduction
+            - Name: ALLOW_ORIGIN
+              Value: !Join ["", ["www.", !Ref HostedZoneName]]
 
   Cluster:
     Type: AWS::ECS::Cluster
