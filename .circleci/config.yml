@@ -179,6 +179,8 @@ jobs:
           command: |
             sudo apt-get update -y
             sudo apt-get -y -qq install awscli
+            aws s3 rb s3://$SERVICE_NAME.cloudfront.accesslogs --force  --region $AWS_REGION
+            aws s3 rb s3://www.$HOSTED_ZONE_NAME --force  --region $AWS_REGION
             aws cloudformation delete-stack --stack-name $STACK_NAME  --region $AWS_REGION
             aws cloudformation stack-delete-complete --stack-name $STACK_NAME  --region $AWS_REGION
 
