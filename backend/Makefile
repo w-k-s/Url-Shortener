@@ -5,7 +5,7 @@ fmt:
 	gofmt -w .
 
 run: fmt
-	DB_CONN_STRING=postgresql://localhost:5432/url_shortener?sslmode=disable go run *.go
+	DB_CONN_STRING=postgresql://localhost:5432/url_shortener?sslmode=disable BASE_URL=http://localhost:8080 ADDRESS=localhost:8080 go run *.go
 
 test: fmt
 	go clean -testcache; go test -count=1 ./...

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/w-k-s/short-url/domain"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"log"
+	"github.com/w-k-s/short-url/log"
 	"net/url"
 	"time"
 )
@@ -13,15 +13,13 @@ type ShortenURLUseCase struct {
 	repo      u.URLRepository
 	baseURL   *url.URL
 	generator ShortIDGenerator
-	logger    *log.Logger
 }
 
-func NewShortenURLUseCase(repo u.URLRepository, baseURL *url.URL, generator ShortIDGenerator, logger *log.Logger) *ShortenURLUseCase {
+func NewShortenURLUseCase(repo u.URLRepository, baseURL *url.URL, generator ShortIDGenerator) *ShortenURLUseCase {
 	return &ShortenURLUseCase{
 		repo,
 		baseURL,
 		generator,
-		logger,
 	}
 }
 
@@ -30,7 +28,7 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 	existingRecord, _ := s.repo.ShortURL(longURL.String())
 
 	if existingRecord != nil {
-		s.logger.Printf("Record found. Long Url: %s, shortURL: %s", longURL, existingRecord.ShortID)
+		log.Printf("Record found. Long Url: %s, shortURL: %s", longURL, existingRecord.ShortID)
 		return s.buildShortenedURLResponse(shortReq, existingRecord), nil
 	}
 
@@ -63,7 +61,7 @@ func (s *ShortenURLUseCase) Execute(shortReq ShortenURLRequest) (ShortenURLRespo
 			CreateTime: time.Now(),
 		})
 
-		s.logger.Printf("longURL '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %v\n\n", longURL, try, shortID, err)
+		log.Printf("longURL '%s' (Attempt %d): Using shortId '%s'.\n\t-- Error: %v\n\n", longURL, try, shortID, err)
 		inserted = err == nil
 	}
 

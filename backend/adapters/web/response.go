@@ -8,10 +8,38 @@ import (
 	"net/http"
 )
 
-func sendResponse(w http.ResponseWriter, status int, body interface{}) {
+type ResponseFmt interface {
+	Print(w http.ResponseWriter, status int, body interface{})
+	Error(w http.ResponseWriter, err domain.Err)
+}
+
+type JsonFmt struct {
+	additionalHeaders map[string]string
+}
+
+func NewJsonFmt() JsonFmt {
+	return JsonFmt{}
+}
+
+func NewJsonFmtWithHeaders(headers map[string]string) JsonFmt {
+	return JsonFmt{
+		headers,
+	}
+}
+
+func (jsonFmt *JsonFmt) setHeaders(w http.ResponseWriter, status int) {
+
+	for key, value := range jsonFmt.additionalHeaders {
+		w.Header().Set(key, value)
+	}
 
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(status)
+}
+
+func (jsonFmt JsonFmt) Print(w http.ResponseWriter, status int, body interface{}) {
+
+	jsonFmt.setHeaders(w, status)
 	encoder := json.NewEncoder(w)
 	err := encoder.Encode(body)
 
@@ -21,12 +49,11 @@ func sendResponse(w http.ResponseWriter, status int, body interface{}) {
 	}
 }
 
-func sendError(w http.ResponseWriter, e domain.Err) {
+func (jsonFmt JsonFmt) Error(w http.ResponseWriter, e domain.Err) {
 
 	encoder := json.NewEncoder(w)
 
-	w.Header().Set("Content-Type", "application/json;charset=utf-8")
-	w.WriteHeader(httpStatusCode(e.Code()))
+	jsonFmt.setHeaders(w, httpStatusCode(e.Code()))
 	err := encoder.Encode(map[string]interface{}{
 		"code":    e.Code(),
 		"message": e.Error(),
