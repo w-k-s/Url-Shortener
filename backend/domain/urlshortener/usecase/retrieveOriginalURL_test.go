@@ -5,9 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"log"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 )
@@ -26,9 +24,8 @@ func (suite *RetrieveOriginalURLUseCaseTestSuite) SetupTest() {
 		time.Now(),
 	}
 
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.urlRepo = &MockURLRepository{}
-	suite.useCase = NewRetrieveOriginalURLUseCase(suite.urlRepo, logger)
+	suite.useCase = NewRetrieveOriginalURLUseCase(suite.urlRepo)
 }
 
 func TestRetrieveOriginalURLUseCaseTestSuite(t *testing.T) {

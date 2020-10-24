@@ -19,7 +19,10 @@ func TestSendError(t *testing.T) {
 		map[string]string{"FIELD": "VALUE"},
 	)
 
-	sendError(w, inputErr)
+	jsonFmt := NewJsonFmtWithHeaders(map[string]string{
+		"Access-Control-Allow-Origin": "https://www.small.ml",
+	})
+	jsonFmt.Error(w, inputErr)
 
 	resp := w.Result()
 
@@ -54,5 +57,9 @@ func TestSendError(t *testing.T) {
 
 	if outFields["FIELD"] != inputErr.Fields()["FIELD"] {
 		t.Error("Incorrect err.Fields keys")
+	}
+
+	if resp.Header.Get("Access-Control-Allow-Origin") != "https://www.small.ml" {
+		t.Error("Additional Headers not set")
 	}
 }

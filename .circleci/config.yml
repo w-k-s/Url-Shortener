@@ -59,6 +59,7 @@ jobs:
           environment:
             BASE_URL: "http://smallest.ml"
             DB_CONN_STRING: "postgres://shorturl:password@localhost:5432/url_shortener?sslmode=disable"
+            ADDRESS: ":8080"
           command: ./app
           background: true
       - run:
@@ -222,14 +223,16 @@ workflows:
             branches:
               only:
                 - master
+                - feat/infrastructure-as-code
 
   scheduled_stack_deletion:
     jobs:
       - delete_stack
     triggers:
       - schedule:
-          cron: "0 18 * * *"
+          cron: "20 20 * * *"
           filters:
             branches:
               only:
                 - master
+                - feat/infrastructure-as-code

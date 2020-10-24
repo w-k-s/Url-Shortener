@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/short-url/adapters/web"
 	"github.com/w-k-s/short-url/domain"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
 	"github.com/w-k-s/short-url/domain/urlshortener/usecase"
-	"log"
+	"github.com/w-k-s/short-url/log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 )
@@ -76,20 +76,16 @@ type ControllerSuite struct {
 	generator                  *MockShortIDGenerator
 	shortenURLUseCase          *usecase.ShortenURLUseCase
 	retrieveOriginalURLUseCase *usecase.RetrieveOriginalURLUseCase
-	controller                 *Controller
 }
 
 func (suite *ControllerSuite) SetupTest() {
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
-
 	baseURL, _ := url.Parse("https://small.ml")
 
 	suite.generator = &MockShortIDGenerator{}
 
 	suite.urlRepo = &MockURLRepository{}
-	suite.shortenURLUseCase = usecase.NewShortenURLUseCase(suite.urlRepo, baseURL, suite.generator, logger)
-	suite.retrieveOriginalURLUseCase = usecase.NewRetrieveOriginalURLUseCase(suite.urlRepo, logger)
-	suite.controller = NewController(suite.shortenURLUseCase, suite.retrieveOriginalURLUseCase, logger)
+	suite.shortenURLUseCase = usecase.NewShortenURLUseCase(suite.urlRepo, baseURL, suite.generator)
+	suite.retrieveOriginalURLUseCase = usecase.NewRetrieveOriginalURLUseCase(suite.urlRepo)
 
 	suite.record = &u.URLRecord{
 		LongURL:    savedLongURL,
@@ -101,6 +97,8 @@ func (suite *ControllerSuite) SetupTest() {
 	if err != nil {
 		panic(fmt.Sprintf("Setup Test: %s", err.Error()))
 	}
+
+	log.Init()
 }
 
 func TestControllerSuite(t *testing.T) {
@@ -114,7 +112,7 @@ func (suite *ControllerSuite) TestGivenEmptyBody_WhenShorteningURL_ThenReturnsEr
 	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
-	suite.controller.ShortenURL(w, req)
+	GetShortenURLHandler(suite.shortenURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	err := getErrOrNil(w)
@@ -129,7 +127,7 @@ func (suite *ControllerSuite) TestGivenInvalidLongURL_WhenShorteningURL_ThenRetu
 	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
-	suite.controller.ShortenURL(w, req)
+	GetShortenURLHandler(suite.shortenURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	err := getErrOrNil(w)
@@ -145,7 +143,7 @@ func (suite *ControllerSuite) TestGivenRelativeLongURL_WhenShorteningURL_ThenRet
 	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
-	suite.controller.ShortenURL(w, req)
+	GetShortenURLHandler(suite.shortenURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	err := getErrOrNil(w)
@@ -168,7 +166,7 @@ func (suite *ControllerSuite) TestGivenLongURL_WhenShorteningURL_() {
 	//When
 	req := httptest.NewRequest("POST", "http://small.ml/urlshortener/v", jsonBytes)
 	w := httptest.NewRecorder()
-	suite.controller.ShortenURL(w, req)
+	GetShortenURLHandler(suite.shortenURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	assert.Equal(suite.T(), "application/json;charset=utf-8", w.Header()["Content-Type"][0])
@@ -187,7 +185,7 @@ func (suite *ControllerSuite) TestGivenShortURLExists_WhenRedirecting_ThenSeeOth
 	//When
 	req := httptest.NewRequest("GET", savedShortURL, nil)
 	w := httptest.NewRecorder()
-	suite.controller.RedirectToLongURL(w, req)
+	GetRedirectToOriginalURLHandler(suite.retrieveOriginalURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	resp := w.Result()
@@ -202,7 +200,7 @@ func (suite *ControllerSuite) TestGivenShortURLDoesNotExist_WhenRedirecting_Then
 	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml/nil", nil)
 	w := httptest.NewRecorder()
-	suite.controller.RedirectToLongURL(w, req)
+	GetRedirectToOriginalURLHandler(suite.retrieveOriginalURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	resp := w.Result()
@@ -218,7 +216,7 @@ func (suite *ControllerSuite) TestGivenNoShortURL_WhenGetLongURLRequest_ThenRetu
 
 	req := httptest.NewRequest("GET", "http://www.small.ml", nil)
 	w := httptest.NewRecorder()
-	suite.controller.GetLongURL(w, req)
+	GetRetrieveOriginalURLHandler(suite.retrieveOriginalURLUseCase, web.NewJsonFmt())(w, req)
 
 	err := getErrOrNil(w)
 	assert.NotNil(suite.T(), err, "ShortURL: Expected error; got nil")
@@ -231,7 +229,7 @@ func (suite *ControllerSuite) TestGivenInvalidShortURL_WhenGetLongURLRequest_The
 	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml?shortUrlhello%20there", nil)
 	w := httptest.NewRecorder()
-	suite.controller.GetLongURL(w, req)
+	GetRetrieveOriginalURLHandler(suite.retrieveOriginalURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	err := getErrOrNil(w)
@@ -245,7 +243,7 @@ func (suite *ControllerSuite) TestGivenRelativeShortURL_WhenGetLongURLRequest_Th
 	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml?shortUrl=path/to/file", nil)
 	w := httptest.NewRecorder()
-	suite.controller.GetLongURL(w, req)
+	GetRetrieveOriginalURLHandler(suite.retrieveOriginalURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	err := getErrOrNil(w)
@@ -261,7 +259,7 @@ func (suite *ControllerSuite) TestGivenShortURLDoesNotExist_WhenGetLongURLReques
 	//When
 	req := httptest.NewRequest("GET", "http://www.small.ml?shortUrl=http://www.small.ml/nil", nil)
 	w := httptest.NewRecorder()
-	suite.controller.GetLongURL(w, req)
+	GetRetrieveOriginalURLHandler(suite.retrieveOriginalURLUseCase, web.NewJsonFmt())(w, req)
 
 	//Then
 	err := getErrOrNil(w)

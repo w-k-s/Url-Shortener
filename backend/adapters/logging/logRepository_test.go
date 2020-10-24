@@ -6,7 +6,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"log"
+	"github.com/w-k-s/short-url/log"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -37,9 +37,10 @@ func (suite *LogRepositoryTestSuite) SetupTest() {
 		panic(err)
 	}
 
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.db = db
-	suite.logRepo = NewLogRepository(suite.db, logger)
+	suite.logRepo = NewLogRepository(suite.db)
+
+	log.Init()
 }
 
 func (suite *LogRepositoryTestSuite) TearDownTest() {

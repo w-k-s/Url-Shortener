@@ -26,6 +26,7 @@ func Init() {
 	initURLRepository()
 	initShortenURLUseCase()
 	initRetrieveOriginalUseCase()
+	initLogRepository()
 	initJsonFmt()
 }
 

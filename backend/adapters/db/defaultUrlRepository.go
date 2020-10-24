@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/lib/pq"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
 )
@@ -29,7 +28,6 @@ func (ur *DefaultURLRepository) SaveRecord(record *u.URLRecord) (*u.URLRecord, e
 }
 
 func (ur *DefaultURLRepository) LongURL(shortID string) (*u.URLRecord, error) {
-	fmt.Println("-> Start LongURL")
 	rows, err := ur.db.Query("SELECT * FROM url_records WHERE short_id = $1", shortID)
 	if err != nil {
 		return nil, err
