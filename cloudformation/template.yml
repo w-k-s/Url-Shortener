@@ -110,7 +110,7 @@ Resources:
             - Name: DB_CONN_STRING
               Value: !Ref DatabaseConnectionString
             - Name: ALLOW_ORIGIN
-              Value: !Join ["", ["www.", !Ref HostedZoneName]]
+              Value: !Join ["", ["https://www.", !Ref HostedZoneName]]
 
   Cluster:
     Type: AWS::ECS::Cluster

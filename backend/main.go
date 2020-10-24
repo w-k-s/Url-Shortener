@@ -23,8 +23,8 @@ func main() {
 	app.Register(controllers.GetHealthCheckHandler(dep.Db))
 	app.Register(controllers.GetShortenURLHandler(dep.ShortenURLUseCase, dep.JsonFmt))
 	app.Register(controllers.GetRetrieveOriginalURLHandler(dep.RetrieveOriginalURLUseCase, dep.JsonFmt))
-	//app.Register(controllers.GetRedirectToOriginalURLHandler(dep.RetrieveOriginalURLUseCase, dep.JsonFmt))
-	//app.Register(controllers.GetLogRequestMiddleware(dep.LogRepository))
+	app.Register(controllers.GetRedirectToOriginalURLHandler(dep.RetrieveOriginalURLUseCase, dep.JsonFmt))
+	app.Register(controllers.GetLogRequestMiddleware(dep.LogRepository))
 
 	log.Panic(app.ListenAndServe())
 }

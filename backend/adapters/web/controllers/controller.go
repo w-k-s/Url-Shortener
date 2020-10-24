@@ -99,7 +99,6 @@ func (h HealthCheckHandler) Route(r *mux.Router) {
 
 func GetHealthCheckHandler(db *sql.DB) HealthCheckHandler {
 	return func(w http.ResponseWriter, req *http.Request) {
-		log.Printf("Do health check")
 
 		if err := db.Ping(); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -120,6 +119,10 @@ func (m LogRequestMiddleware) Route(r *mux.Router) {
 func GetLogRequestMiddleware(logRepository *logging.LogRepository) LogRequestMiddleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			if r.URL.Path == "/health" {
+				return
+			}
 
 			sw := &logging.StatusWriter{ResponseWriter: w}
 

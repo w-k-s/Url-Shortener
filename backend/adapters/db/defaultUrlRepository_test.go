@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	u "github.com/w-k-s/short-url/domain/urlshortener"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -43,9 +42,8 @@ func (suite *URLRepositoryTestSuite) SetupTest() {
 		panic(err)
 	}
 
-	logger := log.New(os.Stdout, "short-url: ", log.Ldate|log.Ltime)
 	suite.db = db
-	suite.urlRepo = NewURLRepository(suite.db, logger)
+	suite.urlRepo = NewURLRepository(suite.db)
 
 	suite.record = &u.URLRecord{
 		LongURL:    savedLongURL,
