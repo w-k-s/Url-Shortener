@@ -109,14 +109,16 @@ The minimal set of IAM permissions to run the template file are specified in the
       "Action": [
         "iam:GetRole",
         "iam:DetachRolePolicy",
+        "logs:DeleteLogGroup",
         "iam:CreateRole",
         "iam:DeleteRole",
         "iam:AttachRolePolicy",
-        "logs:PutRetentionPolicy"
+        "logs:PutRetentionPolicy",
+        "logs:CreateLogGroup"
       ],
       "Resource": [
-        "arn:aws:iam::<AccountId>:role/*",
-        "arn:aws:logs:*:<AccountId>:log-group:*"
+        "arn:aws:logs:*:<AccountID>:log-group:*",
+        "arn:aws:iam::<AccountID>:role/*"
       ]
     }
   ]
