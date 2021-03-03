@@ -204,30 +204,30 @@ workflows:
               only:
                 - master
 
-  scheduled_stack_creation:
-    jobs:
-      - build_backend
-      - deploy_backend:
-          requires:
-            - build_backend
-      - deploy_frontend:
-          requires:
-            - deploy_backend
-    triggers:
-      - schedule:
-          cron: "0 14 * * 4,5,6"
-          filters:
-            branches:
-              only:
-                - master
+  # scheduled_stack_creation:
+  #   jobs:
+  #     - build_backend
+  #     - deploy_backend:
+  #         requires:
+  #           - build_backend
+  #     - deploy_frontend:
+  #         requires:
+  #           - deploy_backend
+  #   triggers:
+  #     - schedule:
+  #         cron: "0 14 * * 4,5,6"
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
 
-  scheduled_stack_deletion:
-    jobs:
-      - delete_stack
-    triggers:
-      - schedule:
-          cron: "50 17 * * 4,5,6"
-          filters:
-            branches:
-              only:
-                - master
+  # scheduled_stack_deletion:
+  #   jobs:
+  #     - delete_stack
+  #   triggers:
+  #     - schedule:
+  #         cron: "50 17 * * 4,5,6"
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
